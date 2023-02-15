@@ -1,10 +1,12 @@
 import json
+from torch.utils.data import Dataset
 
-from src.utils import get_video_info
+from src.utils import get_video_info, set_random_seed
+from src.frame_fetcher import FrameFetcher
 from src.ball_action import constants
 
 
-def get_game_data(game, resolution="720p"):
+def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
     assert resolution in {"224p", "720p"}
 
     game_dir = constants.ball_action_soccernet_dir / game
@@ -12,34 +14,35 @@ def get_game_data(game, resolution="720p"):
     with open(labels_json_path) as file:
         labels = json.load(file)
 
-    game_data = labels["annotations"]
+    annotations = labels["annotations"]
 
     halves = set()
-    for annotation in game_data:
+    for annotation in annotations:
         half = int(annotation["gameTime"].split(" - ")[0])
         halves.add(half)
         annotation["half"] = half
     halves = sorted(halves)
 
-    half2video_info = dict()
+    half2video_data = dict()
     for half in halves:
         half_video_path = str(game_dir / f"{half}_{resolution}.mkv")
-        half2video_info[half] = dict(
-            path=half_video_path,
-            **get_video_info(half_video_path)
+        half2video_data[half] = dict(
+            video_path=half_video_path,
+            half=half,
+            **get_video_info(half_video_path),
+            frame_index2action=dict(),
         )
 
-    for annotation in game_data:
-        video_info = half2video_info[annotation["half"]]
-        frame_number = float(annotation["position"]) * video_info["fps"] * 0.001
-        annotation["video_info"] = video_info
-        annotation["frame_number"] = round(frame_number)
+    for annotation in annotations:
+        video_data = half2video_data[annotation["half"]]
+        frame_index = round(float(annotation["position"]) * video_data["fps"] * 0.001)
+        video_data["frame_index2action"][frame_index] = annotation["label"]
 
-    return game_data
+    return list(half2video_data.values())
 
 
-def get_games_data(games, resolution="720p"):
+def get_videos_data(games: list[str], resolution="720p") -> list[dict]:
     games_data = list()
     for game in games:
-        games_data += get_game_data(game, resolution=resolution)
+        games_data += get_game_videos_data(game, resolution=resolution)
     return games_data
