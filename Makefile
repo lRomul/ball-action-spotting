@@ -24,6 +24,7 @@ stop:
 .PHONY: run
 run:
 	docker run --rm -dit \
+		--net=host \
 		--ipc=host \
 		$(OPTIONS) \
 		$(GPUS_OPTION) \
