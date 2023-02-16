@@ -22,3 +22,12 @@ challenge_games = [
     "england_efl/2019-2020/2019-10-02 - Cardiff City - Queens Park Rangers",
     "england_efl/2019-2020/2019-10-01 - Wigan Athletic - Birmingham City",
 ]
+
+classes = [
+    "PASS",
+    "DRIVE",
+]
+
+num_classes = len(classes)
+target2class = {trg: cls for trg, cls in enumerate(classes)}
+class2target = {cls: trg for trg, cls in enumerate(classes)}
