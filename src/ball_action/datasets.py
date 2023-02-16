@@ -2,7 +2,7 @@ import json
 from torch.utils.data import Dataset
 
 from src.utils import get_video_info, set_random_seed
-from src.frame_fetcher import FrameFetcher
+from src.ball_action.samplers import ActionBallSampler
 from src.ball_action import constants
 
 
@@ -46,3 +46,21 @@ def get_videos_data(games: list[str], resolution="720p") -> list[dict]:
     for game in games:
         games_data += get_game_videos_data(game, resolution=resolution)
     return games_data
+
+
+class BallActionDataset(Dataset):
+    def __init__(self,
+                 games: list[str],
+                 sampler: ActionBallSampler,
+                 resolution="720p"):
+        self.videos_data = get_videos_data(games, resolution=resolution)
+        self.sampler = sampler
+        self.sampler.init_data(self.videos_data)
+
+    def __len__(self):
+        return len(self.sampler)
+
+    def __getitem__(self, index):
+        set_random_seed(index)
+        frames, target = self.sampler.sample(index)
+        return frames, target
