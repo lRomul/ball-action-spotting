@@ -1,4 +1,6 @@
 import json
+
+import torch
 from torch.utils.data import Dataset
 
 from src.utils import get_video_info, set_random_seed
@@ -16,12 +18,12 @@ def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
 
     annotations = labels["annotations"]
 
-    halves = set()
+    halves_set = set()
     for annotation in annotations:
         half = int(annotation["gameTime"].split(" - ")[0])
-        halves.add(half)
+        halves_set.add(half)
         annotation["half"] = half
-    halves = sorted(halves)
+    halves = sorted(halves_set)
 
     half2video_data = dict()
     for half in halves:
@@ -35,7 +37,9 @@ def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
 
     for annotation in annotations:
         video_data = half2video_data[annotation["half"]]
+        assert isinstance(video_data["fps"], float | int)
         frame_index = round(float(annotation["position"]) * video_data["fps"] * 0.001)
+        assert isinstance(video_data["frame_index2action"], dict)
         video_data["frame_index2action"][frame_index] = annotation["label"]
 
     return list(half2video_data.values())
@@ -52,15 +56,15 @@ class BallActionDataset(Dataset):
     def __init__(self,
                  games: list[str],
                  sampler: ActionBallSampler,
-                 resolution="720p"):
+                 resolution: str = "720p"):
         self.videos_data = get_videos_data(games, resolution=resolution)
         self.sampler = sampler
         self.sampler.init_data(self.videos_data)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sampler)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> tuple[torch.Tensor, torch.Tensor]:
         set_random_seed(index)
-        frames, target = self.sampler.sample(index)
-        return frames, target
+        frames, targets = self.sampler.sample(index)
+        return frames, targets

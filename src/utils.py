@@ -1,4 +1,4 @@
-import cv2
+import cv2  # type: ignore
 import time
 import random
 import numpy as np

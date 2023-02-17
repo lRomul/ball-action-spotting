@@ -1,4 +1,4 @@
-import cv2
+import cv2  # type: ignore
 import numpy as np
 from pathlib import Path
 from typing import Optional, Any
@@ -21,7 +21,7 @@ class FrameFetcher:
                 self.frame_count = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def fetch(self, frame_indexes: list[int]) -> list[np.ndarray]:
-        if self.video is None:
+        if self.video is None or self.frame_count is None:
             raise RuntimeError("Need to initialize video before fetching frames")
         min_frame_index = min(frame_indexes)
         max_frame_index = max(frame_indexes)
@@ -36,7 +36,9 @@ class FrameFetcher:
         for index in range(min_frame_index, max_frame_index + 1):
             success, frame = self.video.read()
             if not success:
-                raise RuntimeError(f"Error while fetching frame '{index}' from '{self.video_path}'")
+                raise RuntimeError(
+                    f"Error while fetching frame '{index}' from '{self.video_path}'"
+                )
             if index in frame_indexes_set:
                 index2frame[index] = frame
 
