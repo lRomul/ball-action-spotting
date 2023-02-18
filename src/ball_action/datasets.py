@@ -1,70 +1,77 @@
-import json
+import abc
+import random
 
-import torch
+import numpy as np
 from torch.utils.data import Dataset
 
-from src.utils import get_video_info, set_random_seed
-from src.ball_action.samplers import ActionBallSampler
-from src.ball_action import constants
+from src.ball_action.target import VideoTarget
+from src.frame_fetcher import FrameFetcher
+from src.utils import set_random_seed
 
 
-def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
-    assert resolution in {"224p", "720p"}
+class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
+    def __init__(self,
+                 videos_data: list[dict],
+                 frame_stack_size: int,
+                 frame_stack_step: int,
+                 target_gauss_scale: float):
+        self.frame_stack_size = frame_stack_size
+        self.frame_stack_step = frame_stack_step
+        self.target_gauss_scale = target_gauss_scale
 
-    game_dir = constants.ball_action_soccernet_dir / game
-    labels_json_path = game_dir / "Labels-ball.json"
-    with open(labels_json_path) as file:
-        labels = json.load(file)
+        self.behind_frames = self.frame_stack_size // 2
+        self.ahead_frames = self.frame_stack_size - self.behind_frames - 1
+        self.behind_frames *= self.frame_stack_step
+        self.ahead_frames *= self.frame_stack_step
 
-    annotations = labels["annotations"]
+        self.videos_data = videos_data
+        self.num_videos = len(self.videos_data)
+        self.num_videos_actions = [len(v["frame_index2action"]) for v in self.videos_data]
+        self.num_actions = sum(self.num_videos_actions)
+        self.videos_target = [
+            VideoTarget(data, gauss_scale=self.target_gauss_scale) for data in self.videos_data
+        ]
 
-    halves_set = set()
-    for annotation in annotations:
-        half = int(annotation["gameTime"].split(" - ")[0])
-        halves_set.add(half)
-        annotation["half"] = half
-    halves = sorted(halves_set)
+        self.frame_fetcher = FrameFetcher()
 
-    half2video_data = dict()
-    for half in halves:
-        half_video_path = str(game_dir / f"{half}_{resolution}.mkv")
-        half2video_data[half] = dict(
-            video_path=half_video_path,
-            half=half,
-            **get_video_info(half_video_path),
-            frame_index2action=dict(),
+    def sample_frame_indexes(self, frame_index: int):
+        return list(
+            range(
+                frame_index - self.behind_frames,
+                frame_index + self.ahead_frames + 1,
+                self.frame_stack_step,
+            )
         )
 
-    for annotation in annotations:
-        video_data = half2video_data[annotation["half"]]
-        assert isinstance(video_data["fps"], float | int)
-        frame_index = round(float(annotation["position"]) * video_data["fps"] * 0.001)
-        assert isinstance(video_data["frame_index2action"], dict)
-        video_data["frame_index2action"][frame_index] = annotation["label"]
 
-    return list(half2video_data.values())
-
-
-def get_videos_data(games: list[str], resolution="720p") -> list[dict]:
-    games_data = list()
-    for game in games:
-        games_data += get_game_videos_data(game, resolution=resolution)
-    return games_data
-
-
-class BallActionDataset(Dataset):
+class TrainActionBallDataset(ActionBallDataset):
     def __init__(self,
-                 games: list[str],
-                 sampler: ActionBallSampler,
-                 resolution: str = "720p"):
-        self.videos_data = get_videos_data(games, resolution=resolution)
-        self.sampler = sampler
-        self.sampler.init_data(self.videos_data)
+                 videos_data: list[dict],
+                 frame_stack_size: int,
+                 frame_stack_step: int,
+                 target_gauss_scale: float,
+                 epoch_size: int):
+        super().__init__(videos_data, frame_stack_size, frame_stack_step, target_gauss_scale)
+        self.epoch_size = epoch_size
 
     def __len__(self) -> int:
-        return len(self.sampler)
+        return self.epoch_size
 
-    def __getitem__(self, index) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index) -> tuple[list[np.ndarray], list[np.ndarray]]:
         set_random_seed(index)
-        frames, targets = self.sampler.sample(index)
+
+        video_index = random.randrange(0, self.num_videos)
+
+        video_data = self.videos_data[video_index]
+        video_frame_count = video_data["frame_count"]
+        frame_index = random.randrange(
+            self.behind_frames,
+            video_frame_count - self.ahead_frames
+        )
+        frame_indexes = self.sample_frame_indexes(frame_index)
+        self.frame_fetcher.init_video(video_data["video_path"], video_frame_count)
+        frames = self.frame_fetcher.fetch(frame_indexes)
+
+        targets = self.videos_target[video_index].targets(frame_indexes)
+
         return frames, targets
