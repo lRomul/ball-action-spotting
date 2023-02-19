@@ -103,3 +103,33 @@ class TrainActionBallDataset(ActionBallDataset):
         targets = self.videos_target[video_index].targets(frame_indexes)
 
         return frames, targets
+
+
+class ValActionBallDataset(ActionBallDataset):
+    def __len__(self) -> int:
+        return self.num_actions
+
+    def get_frames_targets(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+        assert 0 <= index < self.__len__()
+        action_index = index
+        video_index = 0
+        for video_index, num_video_actions in enumerate(self.num_videos_actions):
+            if action_index >= num_video_actions:
+                action_index -= num_video_actions
+            else:
+                break
+
+        video_target = self.videos_target[video_index]
+        video_data = self.videos_data[video_index]
+        video_frame_count = video_data["frame_count"]
+        frame_index = video_target.get_frame_index_by_action_index(action_index)
+        if frame_index < self.behind_frames:
+            frame_index = self.behind_frames
+        elif frame_index >= video_frame_count - self.ahead_frames:
+            frame_index = video_frame_count - self.ahead_frames - 1
+        frame_indexes = self.sample_frame_indexes(frame_index)
+        self.frame_fetcher.init_video(video_data["video_path"], video_frame_count)
+        frames = self.frame_fetcher.fetch(frame_indexes)
+
+        targets = self.videos_target[video_index].targets(frame_indexes)
+        return frames, targets
