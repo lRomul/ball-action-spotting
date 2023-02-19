@@ -24,11 +24,16 @@ class VideoTarget:
             cls: defaultdict(float) for cls in constants.classes
         }
 
-        for frame_index, action in video_data["frame_index2action"].items():
+        self.action_index2frame_index: dict[int, int] = dict()
+        actions_sorted_by_frame_index = sorted(
+            video_data["frame_index2action"].items(), key=lambda x: x[0]
+        )
+        for action_index, (frame_index, action) in enumerate(actions_sorted_by_frame_index):
             frame_index2target = self.frame_index2class_target[action]
             for relative_index, value in zip(self.relative_indexes, self.gauss_pdf):
                 current_index = frame_index + relative_index
                 frame_index2target[current_index] = max(value, frame_index2target[current_index])
+            self.action_index2frame_index[action_index] = frame_index
 
     def target(self, frame_index: int) -> np.ndarray:
         target = np.zeros(constants.num_classes, dtype=np.float32)
@@ -39,3 +44,6 @@ class VideoTarget:
     def targets(self, frame_indexes: list[int]) -> np.ndarray:
         targets = [self.target(idx) for idx in frame_indexes]
         return np.stack(targets, axis=0)
+
+    def get_frame_index_by_action_index(self, action_index: int) -> int:
+        return self.action_index2frame_index[action_index]
