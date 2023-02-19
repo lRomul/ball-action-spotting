@@ -20,7 +20,7 @@ class FrameFetcher:
             else:
                 self.frame_count = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    def fetch(self, frame_indexes: list[int]) -> list[np.ndarray]:
+    def fetch(self, frame_indexes: list[int]) -> np.ndarray:
         if self.video is None or self.frame_count is None:
             raise RuntimeError("Need to initialize video before fetching frames")
         min_frame_index = min(frame_indexes)
@@ -43,4 +43,4 @@ class FrameFetcher:
                 index2frame[index] = frame
 
         frames = [index2frame[index] for index in frame_indexes]
-        return frames
+        return np.stack(frames, axis=0)

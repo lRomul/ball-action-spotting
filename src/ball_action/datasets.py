@@ -2,11 +2,29 @@ import abc
 import random
 
 import numpy as np
+
+import torch
 from torch.utils.data import Dataset
+import kornia  # type: ignore
 
 from src.ball_action.target import VideoTarget
 from src.frame_fetcher import FrameFetcher
 from src.utils import set_random_seed
+
+
+def frames_to_tensor(frames: np.ndarray) -> torch.Tensor:
+    frames = frames.astype(np.float32) / 255.0
+    tensor_frames = torch.from_numpy(frames)
+    tensor_frames = tensor_frames.permute(0, 3, 1, 2)  # (T, H, W, C) -> (T, C, H, W)
+    tensor_frames = kornia.color.bgr_to_grayscale(tensor_frames)
+    tensor_frames = tensor_frames.squeeze(1)
+    return tensor_frames
+
+
+def targets_to_tensor(targets: np.ndarray) -> torch.Tensor:
+    targets = targets.astype(np.float32, copy=False)
+    target_tensor = torch.from_numpy(targets)
+    return target_tensor
 
 
 class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
@@ -43,6 +61,16 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
             )
         )
 
+    @abc.abstractmethod
+    def get_frames_targets(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+        pass
+
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+        frames, targets = self.get_frames_targets(index)
+        input_tensor = frames_to_tensor(frames)
+        target_tensor = targets_to_tensor(targets)
+        return input_tensor, target_tensor
+
 
 class TrainActionBallDataset(ActionBallDataset):
     def __init__(self,
@@ -57,7 +85,7 @@ class TrainActionBallDataset(ActionBallDataset):
     def __len__(self) -> int:
         return self.epoch_size
 
-    def __getitem__(self, index) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    def get_frames_targets(self, index) -> tuple[np.ndarray, np.ndarray]:
         set_random_seed(index)
 
         video_index = random.randrange(0, self.num_videos)

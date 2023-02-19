@@ -36,5 +36,6 @@ class VideoTarget:
             target[constants.class2target[cls]] = self.frame_index2class_target[cls][frame_index]
         return target
 
-    def targets(self, frame_indexes: list[int]) -> list[np.ndarray]:
-        return [self.target(idx) for idx in frame_indexes]
+    def targets(self, frame_indexes: list[int]) -> np.ndarray:
+        targets = [self.target(idx) for idx in frame_indexes]
+        return np.stack(targets, axis=0)
