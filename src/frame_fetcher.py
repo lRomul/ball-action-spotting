@@ -3,6 +3,9 @@ import numpy as np
 from pathlib import Path
 from typing import Optional, Any
 
+cv2.setNumThreads(0)
+cv2.ocl.setUseOpenCL(False)
+
 
 class FrameFetcher:
     def __init__(self):
@@ -14,7 +17,7 @@ class FrameFetcher:
         video_path = Path(video_path)
         if self.video_path != video_path:
             self.video_path = video_path
-            self.video = cv2.VideoCapture(str(self.video_path))
+            self.video = cv2.VideoCapture(str(self.video_path), cv2.CAP_FFMPEG)
             if frame_count is not None:
                 self.frame_count = frame_count
             else:
@@ -35,6 +38,7 @@ class FrameFetcher:
         frame_indexes_set = set(frame_indexes)
         for index in range(min_frame_index, max_frame_index + 1):
             success, frame = self.video.read()
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if not success:
                 raise RuntimeError(
                     f"Error while fetching frame '{index}' from '{self.video_path}'"

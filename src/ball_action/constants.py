@@ -1,7 +1,7 @@
 from src.constants import data_dir, soccernet_dir
 
 ball_action_dir = data_dir / "ball_action"
-experiments_dir = data_dir / "experiments"
+experiments_dir = ball_action_dir / "experiments"
 
 ball_action_soccernet_dir = soccernet_dir / "spotting-ball-2023"
 

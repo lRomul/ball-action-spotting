@@ -18,10 +18,6 @@ from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ball_action import constants
 
-import cv2
-cv2.setNumThreads(0)
-cv2.ocl.setUseOpenCL(False)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment', required=True, type=str)

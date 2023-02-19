@@ -15,9 +15,6 @@ from src.utils import set_random_seed
 def frames_to_tensor(frames: np.ndarray) -> torch.Tensor:
     frames = frames.astype(np.float32) / 255.0
     tensor_frames = torch.from_numpy(frames)
-    tensor_frames = tensor_frames.permute(0, 3, 1, 2)  # (T, H, W, C) -> (T, C, H, W)
-    tensor_frames = kornia.color.bgr_to_grayscale(tensor_frames)
-    tensor_frames = tensor_frames.squeeze(1)
     return tensor_frames
 
 
