@@ -18,4 +18,5 @@ RUN git clone --branch=master --single-branch https://github.com/NVIDIA/VideoPro
     cd ../../.. && rm -rf VideoProcessingFramework
 
 RUN pip3 install --no-cache-dir \
-    SoccerNet==0.1.46
+    SoccerNet==0.1.46 \
+    rosny==0.0.6

@@ -69,15 +69,12 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
 
     def get_frames_targets(self, video_index: int, frame_index: int) -> tuple[torch.Tensor, np.ndarray]:
         video_data = self.videos_data[video_index]
-        video_frame_count = video_data["frame_count"]
         frame_indexes = self.make_stack_indexes(frame_index)
         self.frame_fetcher = NvDecFrameFetcher(video_data["video_path"],
                                                gpu_id=self.gpu_id)
-        self.frame_fetcher.num_frames = video_frame_count
+        self.frame_fetcher.num_frames = video_data["frame_count"]
         frames = self.frame_fetcher.fetch(frame_indexes)
-
         targets = self.videos_target[video_index].targets(frame_indexes)
-
         return frames, targets
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
