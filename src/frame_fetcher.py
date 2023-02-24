@@ -13,11 +13,11 @@ class FrameFetcher:
         self.video: Optional[Any] = None
         self.frame_count: Optional[int] = None
 
-    def init_video(self, video_path: str | Path, frame_count: Optional[int]):
+    def init_video(self, video_path: str | Path, frame_count: Optional[int] = None):
         video_path = Path(video_path)
         if self.video_path != video_path:
             self.video_path = video_path
-            self.video = cv2.VideoCapture(str(self.video_path), cv2.CAP_FFMPEG)
+            self.video = cv2.VideoCapture(str(self.video_path))
             if frame_count is not None:
                 self.frame_count = frame_count
             else:
