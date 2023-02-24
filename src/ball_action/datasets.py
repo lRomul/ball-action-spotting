@@ -1,5 +1,6 @@
 import abc
 import random
+from typing import Optional
 
 import numpy as np
 
@@ -7,15 +8,14 @@ import torch
 from torch.utils.data import Dataset
 import kornia  # type: ignore
 
+from src.nvdec_frame_fetcher import NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
-from src.frame_fetcher import FrameFetcher
 from src.utils import set_random_seed
 
 
-def frames_to_tensor(frames: np.ndarray) -> torch.Tensor:
-    frames = frames.astype(np.float32) / 255.0
-    tensor_frames = torch.from_numpy(frames)
-    return tensor_frames
+def normalize_tensor_frames(frames: torch.Tensor) -> torch.Tensor:
+    frames = frames.to(torch.float32) / 255.0
+    return frames
 
 
 def targets_to_tensor(targets: np.ndarray) -> torch.Tensor:
@@ -29,10 +29,12 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
                  videos_data: list[dict],
                  frame_stack_size: int,
                  frame_stack_step: int,
-                 target_gauss_scale: float):
+                 target_gauss_scale: float,
+                 gpu_id: int = 0):
         self.frame_stack_size = frame_stack_size
         self.frame_stack_step = frame_stack_step
         self.target_gauss_scale = target_gauss_scale
+        self.gpu_id = gpu_id
 
         self.behind_frames = self.frame_stack_size // 2
         self.ahead_frames = self.frame_stack_size - self.behind_frames - 1
@@ -47,9 +49,12 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
             VideoTarget(data, gauss_scale=self.target_gauss_scale) for data in self.videos_data
         ]
 
-        self.frame_fetcher = FrameFetcher()
+        self.frame_fetcher: Optional[NvDecFrameFetcher] = None
 
-    def sample_frame_indexes(self, frame_index: int):
+    def __len__(self) -> int:
+        return self.num_actions
+
+    def make_stack_indexes(self, frame_index: int):
         return list(
             range(
                 frame_index - self.behind_frames,
@@ -59,12 +64,26 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def get_frames_targets(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
         pass
 
+    def get_frames_targets(self, video_index: int, frame_index: int) -> tuple[torch.Tensor, np.ndarray]:
+        video_data = self.videos_data[video_index]
+        video_frame_count = video_data["frame_count"]
+        frame_indexes = self.make_stack_indexes(frame_index)
+        self.frame_fetcher = NvDecFrameFetcher(video_data["video_path"],
+                                               gpu_id=self.gpu_id)
+        self.frame_fetcher.num_frames = video_frame_count
+        frames = self.frame_fetcher.fetch(frame_indexes)
+
+        targets = self.videos_target[video_index].targets(frame_indexes)
+
+        return frames, targets
+
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-        frames, targets = self.get_frames_targets(index)
-        input_tensor = frames_to_tensor(frames)
+        video_index, frame_index = self.get_video_frame_indexes(index)
+        frames, targets = self.get_frames_targets(video_index, frame_index)
+        input_tensor = normalize_tensor_frames(frames)
         target_tensor = targets_to_tensor(targets)
         return input_tensor, target_tensor
 
@@ -75,38 +94,33 @@ class TrainActionBallDataset(ActionBallDataset):
                  frame_stack_size: int,
                  frame_stack_step: int,
                  target_gauss_scale: float,
-                 epoch_size: int):
-        super().__init__(videos_data, frame_stack_size, frame_stack_step, target_gauss_scale)
+                 epoch_size: int,
+                 gpu_id: int = 0):
+        super().__init__(
+            videos_data,
+            frame_stack_size,
+            frame_stack_step,
+            target_gauss_scale,
+            gpu_id=gpu_id
+        )
         self.epoch_size = epoch_size
 
     def __len__(self) -> int:
         return self.epoch_size
 
-    def get_frames_targets(self, index) -> tuple[np.ndarray, np.ndarray]:
+    def get_video_frame_indexes(self, index) -> tuple[int, int]:
         set_random_seed(index)
-
         video_index = random.randrange(0, self.num_videos)
-
         video_data = self.videos_data[video_index]
-        video_frame_count = video_data["frame_count"]
         frame_index = random.randrange(
             self.behind_frames,
-            video_frame_count - self.ahead_frames
+            video_data["frame_count"] - self.ahead_frames
         )
-        frame_indexes = self.sample_frame_indexes(frame_index)
-        self.frame_fetcher.init_video(video_data["video_path"], video_frame_count)
-        frames = self.frame_fetcher.fetch(frame_indexes)
-
-        targets = self.videos_target[video_index].targets(frame_indexes)
-
-        return frames, targets
+        return video_index, frame_index
 
 
 class ValActionBallDataset(ActionBallDataset):
-    def __len__(self) -> int:
-        return self.num_actions
-
-    def get_frames_targets(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
         assert 0 <= index < self.__len__()
         action_index = index
         video_index = 0
@@ -115,7 +129,6 @@ class ValActionBallDataset(ActionBallDataset):
                 action_index -= num_video_actions
             else:
                 break
-
         video_target = self.videos_target[video_index]
         video_data = self.videos_data[video_index]
         video_frame_count = video_data["frame_count"]
@@ -124,9 +137,4 @@ class ValActionBallDataset(ActionBallDataset):
             frame_index = self.behind_frames
         elif frame_index >= video_frame_count - self.ahead_frames:
             frame_index = video_frame_count - self.ahead_frames - 1
-        frame_indexes = self.sample_frame_indexes(frame_index)
-        self.frame_fetcher.init_video(video_data["video_path"], video_frame_count)
-        frames = self.frame_fetcher.fetch(frame_indexes)
-
-        targets = self.videos_target[video_index].targets(frame_indexes)
-        return frames, targets
+        return video_index, frame_index
