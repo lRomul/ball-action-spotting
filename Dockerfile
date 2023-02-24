@@ -19,4 +19,5 @@ RUN git clone --branch=master --single-branch https://github.com/NVIDIA/VideoPro
 
 RUN pip3 install --no-cache-dir \
     SoccerNet==0.1.46 \
-    rosny==0.0.6
+    rosny==0.0.6 \
+    kornia==0.6.10

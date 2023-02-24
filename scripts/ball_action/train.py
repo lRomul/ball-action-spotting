@@ -13,11 +13,11 @@ from argus.callbacks import (
 )
 
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
+from src.ball_action.augmentations import get_train_augmentations
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.thread_data_loader import ThreadDataLoader
 from src.ball_action import constants
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment", required=True, type=str)
@@ -28,10 +28,12 @@ def get_lr(base_lr, batch_size):
     return base_lr * (batch_size / 8)
 
 
+IMAGE_SIZE = (1280, 720)
 BATCH_SIZE = 4
 BASE_LR = 1e-4
 FRAME_STACK_SIZE = 15
 CONFIG = dict(
+    image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
     frame_stack_size=FRAME_STACK_SIZE,
@@ -53,6 +55,7 @@ CONFIG = dict(
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
+        "image_size": IMAGE_SIZE,
     },
 )
 
@@ -61,6 +64,9 @@ def train_ball_action(config: dict, save_dir: Path):
     model = BallActionModel(config["argus_params"])
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
+
+    augmentations = get_train_augmentations(config["image_size"][::-1])
+    model.augmentations = augmentations
 
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         device = torch.device(config["argus_params"]["device"][0])
