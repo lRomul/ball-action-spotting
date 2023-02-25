@@ -39,7 +39,7 @@ CONFIG = dict(
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
     target_gauss_scale=3.0,
-    train_epoch_size=12000,
+    train_epoch_size=6000,
     train_action_prob=0.5,
     train_action_random_shift=4,
     num_threads=4,
@@ -84,7 +84,7 @@ def train_ball_action(config: dict, save_dir: Path):
             gpu_id=device.index,
         )
         print(f"Train dataset len {len(train_dataset)}")
-        val_data = get_videos_data(constants.val_games)
+        val_data = get_videos_data(constants.val_games, add_empty_actions=True)
         val_dataset = ValActionBallDataset(
             val_data,
             frame_stack_size=config["frame_stack_size"],
@@ -95,7 +95,7 @@ def train_ball_action(config: dict, save_dir: Path):
         print(f"Val dataset len {len(val_dataset)}")
         train_loader = ThreadDataLoader(train_dataset, batch_size=config["batch_size"],
                                         num_threads=config["num_threads"])
-        val_loader = ThreadDataLoader(val_dataset, batch_size=config["batch_size"] * 2,
+        val_loader = ThreadDataLoader(val_dataset, batch_size=config["batch_size"],
                                       num_threads=config["num_threads"])
 
         callbacks = [

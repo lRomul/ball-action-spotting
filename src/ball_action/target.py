@@ -29,11 +29,13 @@ class VideoTarget:
             video_data["frame_index2action"].items(), key=lambda x: x[0]
         )
         for action_index, (frame_index, action) in enumerate(actions_sorted_by_frame_index):
+            self.action_index2frame_index[action_index] = frame_index
+            if action not in constants.classes:
+                continue
             frame_index2target = self.frame_index2class_target[action]
             for relative_index, value in zip(self.relative_indexes, self.gauss_pdf):
                 current_index = frame_index + relative_index
                 frame_index2target[current_index] = max(value, frame_index2target[current_index])
-            self.action_index2frame_index[action_index] = frame_index
 
     def target(self, frame_index: int) -> np.ndarray:
         target = np.zeros(constants.num_classes, dtype=np.float32)

@@ -6,7 +6,6 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset
-import kornia  # type: ignore
 
 from src.nvdec_frame_fetcher import NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
@@ -74,7 +73,9 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
     def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
         pass
 
-    def get_frames_targets(self, video_index: int, frame_index: int) -> tuple[torch.Tensor, np.ndarray]:
+    def get_frames_targets(self,
+                           video_index: int,
+                           frame_index: int) -> tuple[torch.Tensor, np.ndarray]:
         video_data = self.videos_data[video_index]
         frame_indexes = self.make_stack_indexes(frame_index)
         self.frame_fetcher = NvDecFrameFetcher(video_data["video_path"],

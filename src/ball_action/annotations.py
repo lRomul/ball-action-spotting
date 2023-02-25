@@ -4,7 +4,9 @@ from src.utils import get_video_info
 from src.ball_action import constants
 
 
-def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
+def get_game_videos_data(game: str,
+                         resolution="720p",
+                         add_empty_actions: bool = False) -> list[dict]:
     assert resolution in {"224p", "720p"}
 
     game_dir = constants.ball_action_soccernet_dir / game
@@ -33,16 +35,31 @@ def get_game_videos_data(game: str, resolution="720p") -> list[dict]:
 
     for annotation in annotations:
         video_data = half2video_data[annotation["half"]]
-        assert isinstance(video_data["fps"], float | int)
         frame_index = round(float(annotation["position"]) * video_data["fps"] * 0.001)
-        assert isinstance(video_data["frame_index2action"], dict)
         video_data["frame_index2action"][frame_index] = annotation["label"]
+
+    if add_empty_actions:
+        for half in halves:
+            video_data = half2video_data[half]
+            prev_frame_index = -1
+            for frame_index in sorted(video_data["frame_index2action"].keys()):
+                if prev_frame_index != -1:
+                    empty_frame_index = (prev_frame_index + frame_index) // 2
+                    if empty_frame_index not in video_data["frame_index2action"]:
+                        video_data["frame_index2action"][empty_frame_index] = "EMPTY"
+                prev_frame_index = frame_index
 
     return list(half2video_data.values())
 
 
-def get_videos_data(games: list[str], resolution="720p") -> list[dict]:
+def get_videos_data(games: list[str],
+                    resolution="720p",
+                    add_empty_actions: bool = False) -> list[dict]:
     games_data = list()
     for game in games:
-        games_data += get_game_videos_data(game, resolution=resolution)
+        games_data += get_game_videos_data(
+            game,
+            resolution=resolution,
+            add_empty_actions=add_empty_actions
+        )
     return games_data
