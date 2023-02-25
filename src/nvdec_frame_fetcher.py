@@ -33,7 +33,8 @@ class NvDecFrameFetcher:
         if min_frame_index < 0 or max_frame_index >= self.num_frames:
             raise RuntimeError("Frame index out of range")
 
-        seek_ctx = nvc.SeekContext(min_frame_index)
+        # Apparently frame indexing starts from 1 in VPF unlike OpenCV
+        seek_ctx = nvc.SeekContext(min_frame_index - 1)
 
         index2frame = dict()
         frame_indexes_set = set(frame_indexes)
