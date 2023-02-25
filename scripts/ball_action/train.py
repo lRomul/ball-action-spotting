@@ -38,9 +38,10 @@ CONFIG = dict(
     base_lr=BASE_LR,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
-    target_gauss_scale=4.5,
+    target_gauss_scale=3.0,
     train_epoch_size=2000,
     train_action_prob=0.5,
+    train_action_random_shift=4,
     num_threads=4,
     num_epochs=[2, 14],
     stages=["warmup", "train"],
@@ -79,6 +80,7 @@ def train_ball_action(config: dict, save_dir: Path):
             target_gauss_scale=config["target_gauss_scale"],
             epoch_size=config["train_epoch_size"],
             action_prob=config["train_action_prob"],
+            action_random_shift=config["train_action_random_shift"],
             gpu_id=device.index,
         )
         print(f"Train dataset len {len(train_dataset)}")

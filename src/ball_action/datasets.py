@@ -100,6 +100,7 @@ class TrainActionBallDataset(ActionBallDataset):
                  target_gauss_scale: float,
                  epoch_size: int,
                  action_prob: float,
+                 action_random_shift: int,
                  gpu_id: int = 0):
         super().__init__(
             videos_data,
@@ -110,6 +111,7 @@ class TrainActionBallDataset(ActionBallDataset):
         )
         self.epoch_size = epoch_size
         self.action_prob = action_prob
+        self.action_random_shift = action_random_shift
 
     def __len__(self) -> int:
         return self.epoch_size
@@ -123,6 +125,8 @@ class TrainActionBallDataset(ActionBallDataset):
         if random.random() < self.action_prob:
             action_index = random.randrange(0, video_target.num_actions())
             frame_index = video_target.get_frame_index_by_action_index(action_index)
+            if self.action_random_shift:
+                frame_index += random.randint(-self.action_random_shift, self.action_random_shift)
             frame_index = self.clip_frame_index(frame_index, video_frame_count)
         else:
             frame_index = random.randrange(
