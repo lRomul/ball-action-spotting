@@ -47,3 +47,6 @@ class VideoTarget:
 
     def get_frame_index_by_action_index(self, action_index: int) -> int:
         return self.action_index2frame_index[action_index]
+
+    def num_actions(self) -> int:
+        return len(self.action_index2frame_index)
