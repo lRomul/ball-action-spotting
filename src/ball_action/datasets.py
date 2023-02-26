@@ -81,7 +81,7 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
         self.frame_fetcher = NvDecFrameFetcher(video_data["video_path"],
                                                gpu_id=self.gpu_id)
         self.frame_fetcher.num_frames = video_data["frame_count"]
-        frames = self.frame_fetcher.fetch(frame_indexes)
+        frames = self.frame_fetcher.fetch_frames(frame_indexes)
         targets = self.videos_target[video_index].targets(frame_indexes)
         return frames, targets
 
