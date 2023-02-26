@@ -3,17 +3,17 @@ from typing import Optional
 import torch
 from torch import nn
 
+import timm
 import argus
 from argus.engine import State
 from argus.utils import deep_to, deep_detach
 
-from src.models.action_timm import ActionTimm
-
 
 class BallActionModel(argus.Model):
     nn_module = {
-        "ActionTimm": ActionTimm,
+        "timm": timm.create_model,
     }
+    prediction_transform = nn.Sigmoid
 
     def __init__(self, params: dict):
         super().__init__(params)

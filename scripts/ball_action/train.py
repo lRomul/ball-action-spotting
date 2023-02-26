@@ -14,6 +14,8 @@ from argus.callbacks import (
 
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
 from src.ball_action.augmentations import get_train_augmentations
+from src.ball_action.target import MaxWindowTargetsProcessor
+from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.thread_data_loader import ThreadDataLoader
@@ -38,7 +40,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
-    target_gauss_scale=3.0,
+    max_targets_window_size=7,
     train_epoch_size=6000,
     train_action_prob=0.5,
     train_action_random_shift=4,
@@ -48,10 +50,10 @@ CONFIG = dict(
     min_base_lr=BASE_LR * 0.01,
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
-        "nn_module": ("ActionTimm", {
+        "nn_module": ("timm", {
             "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
-            "num_frames": FRAME_STACK_SIZE,
+            "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
         }),
         "loss": "BCEWithLogitsLoss",
@@ -70,26 +72,32 @@ def train_ball_action(config: dict, save_dir: Path):
     augmentations = get_train_augmentations(config["image_size"][::-1])
     model.augmentations = augmentations
 
+    targets_processor = MaxWindowTargetsProcessor(
+        window_size=config["max_targets_window_size"]
+    )
+    indexes_generator = StackIndexesGenerator(
+        config["frame_stack_size"],
+        config["frame_stack_step"]
+    )
+
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         device = torch.device(config["argus_params"]["device"][0])
         train_data = get_videos_data(constants.train_games)
         train_dataset = TrainActionBallDataset(
             train_data,
-            frame_stack_size=config["frame_stack_size"],
-            frame_stack_step=config["frame_stack_step"],
-            target_gauss_scale=config["target_gauss_scale"],
+            indexes_generator=indexes_generator,
             epoch_size=config["train_epoch_size"],
             action_prob=config["train_action_prob"],
             action_random_shift=config["train_action_random_shift"],
+            target_process_fn=targets_processor,
             gpu_id=device.index,
         )
         print(f"Train dataset len {len(train_dataset)}")
         val_data = get_videos_data(constants.val_games, add_empty_actions=True)
         val_dataset = ValActionBallDataset(
             val_data,
-            frame_stack_size=config["frame_stack_size"],
-            frame_stack_step=config["frame_stack_step"],
-            target_gauss_scale=config["target_gauss_scale"],
+            indexes_generator=indexes_generator,
+            target_process_fn=targets_processor,
             gpu_id=device.index,
         )
         print(f"Val dataset len {len(val_dataset)}")

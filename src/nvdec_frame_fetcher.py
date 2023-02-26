@@ -59,7 +59,7 @@ class NvDecFrameFetcher:
             self._current_index += 1
             return nv12_surface
         else:
-            raise RuntimeError(f"End of frames")
+            raise RuntimeError("End of frames")
 
     def _seek_and_decode(self, index: int):
         if index < 0 or index >= self.num_frames:

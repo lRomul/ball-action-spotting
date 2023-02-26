@@ -1,25 +1,14 @@
+import abc
 from collections import defaultdict
 
+import torch
 import numpy as np
-from scipy.stats import norm  # type: ignore
 
 from src.ball_action import constants
 
 
-def make_gauss_density(scale: float) -> tuple[np.ndarray, np.ndarray]:
-    tail_length = 4 * round(scale)
-    x = np.linspace(-tail_length, tail_length, 2 * tail_length + 1).astype(int)
-    y = norm.pdf(x, 0, scale)
-    y /= y.max()
-    return x, y
-
-
 class VideoTarget:
-    def __init__(self, video_data: dict, gauss_scale: float):
-        relative_indexes, gauss_pdf = make_gauss_density(gauss_scale)
-        self.relative_indexes = [int(x) for x in relative_indexes]
-        self.gauss_pdf = [float(y) for y in gauss_pdf]
-
+    def __init__(self, video_data: dict):
         self.frame_index2class_target: dict[str, defaultdict] = {
             cls: defaultdict(float) for cls in constants.classes
         }
@@ -30,12 +19,8 @@ class VideoTarget:
         )
         for action_index, (frame_index, action) in enumerate(actions_sorted_by_frame_index):
             self.action_index2frame_index[action_index] = frame_index
-            if action not in constants.classes:
-                continue
-            frame_index2target = self.frame_index2class_target[action]
-            for relative_index, value in zip(self.relative_indexes, self.gauss_pdf):
-                current_index = frame_index + relative_index
-                frame_index2target[current_index] = max(value, frame_index2target[current_index])
+            if action in constants.classes:
+                self.frame_index2class_target[action][frame_index] = 1.0
 
     def target(self, frame_index: int) -> np.ndarray:
         target = np.zeros(constants.num_classes, dtype=np.float32)
@@ -52,3 +37,28 @@ class VideoTarget:
 
     def num_actions(self) -> int:
         return len(self.action_index2frame_index)
+
+
+def center_crop_targets(targets: np.ndarray, crop_size: int) -> np.ndarray:
+    num_crop_targets = targets.shape[0] - crop_size
+    left = num_crop_targets // 2
+    right = num_crop_targets - left
+    return targets[left:-right]
+
+
+class TargetsToTensorProcessor(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def __call__(self, targets: np.ndarray) -> torch.Tensor:
+        pass
+
+
+class MaxWindowTargetsProcessor(TargetsToTensorProcessor):
+    def __init__(self, window_size):
+        self.window_size = window_size
+
+    def __call__(self, targets: np.ndarray) -> torch.Tensor:
+        targets = targets.astype(np.float32, copy=False)
+        targets = center_crop_targets(targets, self.window_size)
+        target = np.amax(targets, axis=0)
+        target_tensor = torch.from_numpy(target)
+        return target_tensor

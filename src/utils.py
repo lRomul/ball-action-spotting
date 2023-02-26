@@ -1,8 +1,10 @@
-import cv2  # type: ignore
 import time
 import random
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import torch
+import cv2  # type: ignore
 
 
 def get_video_info(video_path: str | Path) -> dict[str, int | float]:
@@ -20,3 +22,8 @@ def set_random_seed(index: int):
     seed = int(time.time() * 1000.0) + index
     random.seed(seed)
     np.random.seed(seed % (2 ** 32 - 1))
+
+
+def normalize_tensor_frames(frames: torch.Tensor) -> torch.Tensor:
+    frames = frames.to(torch.float32) / 255.0
+    return frames
