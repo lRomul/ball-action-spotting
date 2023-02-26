@@ -62,11 +62,13 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
             )
         )
 
-    def clip_frame_index(self, frame_index: int, frame_count: int):
-        if frame_index < self.behind_frames:
-            frame_index = self.behind_frames
-        elif frame_index >= frame_count - self.ahead_frames:
-            frame_index = frame_count - self.ahead_frames - 1
+    def clip_frame_index(self, frame_index: int, frame_count: int, save_zone: int = 1):
+        behind_frames = self.behind_frames + save_zone
+        ahead_frames = self.ahead_frames + save_zone
+        if frame_index < behind_frames:
+            frame_index = behind_frames
+        elif frame_index >= frame_count - ahead_frames:
+            frame_index = frame_count - ahead_frames - 1
         return frame_index
 
     @abc.abstractmethod
