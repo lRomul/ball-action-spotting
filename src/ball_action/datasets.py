@@ -53,7 +53,8 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
                                                gpu_id=self.gpu_id)
         self.frame_fetcher.num_frames = video_data["frame_count"]
         frames = self.frame_fetcher.fetch_frames(frame_indexes)
-        targets = self.videos_target[video_index].targets(frame_indexes)
+        target_indexes = list(range(min(frame_indexes), max(frame_indexes) + 1))
+        targets = self.videos_target[video_index].targets(target_indexes)
         return frames, targets
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:

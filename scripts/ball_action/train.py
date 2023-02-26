@@ -40,7 +40,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
-    max_targets_window_size=7,
+    max_targets_window_size=15,
     train_epoch_size=6000,
     train_action_prob=0.5,
     train_action_random_shift=4,
@@ -77,7 +77,7 @@ def train_ball_action(config: dict, save_dir: Path):
     )
     indexes_generator = StackIndexesGenerator(
         config["frame_stack_size"],
-        config["frame_stack_step"]
+        config["frame_stack_step"],
     )
 
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
@@ -108,7 +108,7 @@ def train_ball_action(config: dict, save_dir: Path):
 
         callbacks = [
             LoggingToFile(save_dir / "log.txt", append=True),
-            LoggingToCSV(save_dir / "log.csv", append=True)
+            LoggingToCSV(save_dir / "log.csv", append=True),
         ]
 
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
@@ -119,7 +119,7 @@ def train_ball_action(config: dict, save_dir: Path):
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
                     step_on_iteration=True
-                )
+                ),
             ]
         elif stage == "warmup":
             callbacks += [
