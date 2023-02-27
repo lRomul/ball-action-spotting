@@ -126,7 +126,7 @@ def train_ball_action(config: dict, save_dir: Path):
         elif stage == "warmup":
             callbacks += [
                 LambdaLR(lambda x: x / num_iterations,
-                         step_on_iteration=True)
+                         step_on_iteration=True),
             ]
 
         metrics = [
