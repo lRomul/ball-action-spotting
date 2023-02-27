@@ -14,6 +14,7 @@ from argus.callbacks import (
 
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
 from src.ball_action.augmentations import get_train_augmentations
+from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
@@ -44,6 +45,7 @@ CONFIG = dict(
     train_epoch_size=6000,
     train_action_prob=0.5,
     train_action_random_shift=4,
+    metric_accuracy_threshold=0.5,
     num_threads=4,
     num_epochs=[2, 14],
     stages=["warmup", "train"],
@@ -114,7 +116,7 @@ def train_ball_action(config: dict, save_dir: Path):
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
             callbacks += [
-                MonitorCheckpoint(save_dir, monitor="val_loss", max_saves=1),
+                MonitorCheckpoint(save_dir, monitor="val_average_precision", max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
@@ -127,10 +129,17 @@ def train_ball_action(config: dict, save_dir: Path):
                          step_on_iteration=True)
             ]
 
+        metrics = [
+            AveragePrecision(),
+            Accuracy(threshold=config["metric_accuracy_threshold"]),
+        ]
+
         model.fit(train_loader,
                   val_loader=val_loader,
                   num_epochs=num_epochs,
-                  callbacks=callbacks)
+                  callbacks=callbacks,
+                  metrics=metrics,
+                  metrics_on_train=True)
 
 
 if __name__ == "__main__":

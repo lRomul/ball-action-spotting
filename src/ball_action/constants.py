@@ -29,5 +29,5 @@ classes = [
 ]
 
 num_classes = len(classes)
-target2class = {trg: cls for trg, cls in enumerate(classes)}
-class2target = {cls: trg for trg, cls in enumerate(classes)}
+target2class: dict[int, str] = {trg: cls for trg, cls in enumerate(classes)}
+class2target: dict[str, int] = {cls: trg for trg, cls in enumerate(classes)}
