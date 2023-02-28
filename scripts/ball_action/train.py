@@ -33,7 +33,7 @@ def get_lr(base_lr, batch_size):
 
 IMAGE_SIZE = (1280, 720)
 BATCH_SIZE = 4
-BASE_LR = 1e-4
+BASE_LR = 6e-4
 FRAME_STACK_SIZE = 15
 CONFIG = dict(
     image_size=IMAGE_SIZE,
@@ -44,7 +44,7 @@ CONFIG = dict(
     max_targets_window_size=15,
     train_epoch_size=6000,
     train_action_prob=0.5,
-    train_action_random_shift=6,
+    train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
     num_threads=4,
     num_epochs=[2, 14],
