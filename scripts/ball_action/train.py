@@ -4,6 +4,8 @@ from pathlib import Path
 
 import torch
 
+import argus
+from argus.engine import State
 from argus.callbacks import (
     MonitorCheckpoint,
     LoggingToFile,
@@ -39,17 +41,18 @@ CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
+    min_base_lr=BASE_LR * 0.01,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
     max_targets_window_size=15,
     train_epoch_size=6000,
-    train_action_prob=0.5,
+    action_prob=0.5,
+    min_action_prob=0.25,
     train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
     num_threads=4,
     num_epochs=[2, 14],
     stages=["warmup", "train"],
-    min_base_lr=BASE_LR * 0.01,
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
@@ -85,11 +88,13 @@ def train_ball_action(config: dict, save_dir: Path):
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         device = torch.device(config["argus_params"]["device"][0])
         train_data = get_videos_data(constants.train_games)
+        action_prob = config["action_prob"]
+        min_action_prob = config["min_action_prob"]
         train_dataset = TrainActionBallDataset(
             train_data,
             indexes_generator=indexes_generator,
             epoch_size=config["train_epoch_size"],
-            action_prob=config["train_action_prob"],
+            action_prob=action_prob,
             action_random_shift=config["train_action_random_shift"],
             target_process_fn=targets_processor,
             gpu_id=device.index,
@@ -113,7 +118,18 @@ def train_ball_action(config: dict, save_dir: Path):
             LoggingToCSV(save_dir / "log.csv", append=True),
         ]
 
-        num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
+        num_iterations_per_epoch = len(train_dataset) // config["batch_size"]
+        num_iterations = num_iterations_per_epoch * num_epochs
+
+        @argus.callbacks.on_iteration_start
+        def adjust_action_prob(state: State):
+            train_dataset.action_prob = (
+                    action_prob
+                    + (min_action_prob - action_prob)
+                    * (state.epoch * num_iterations_per_epoch + state.iteration)
+                    / num_iterations
+            )
+
         if stage == "train":
             callbacks += [
                 MonitorCheckpoint(save_dir, monitor="val_average_precision", max_saves=1),
@@ -122,6 +138,7 @@ def train_ball_action(config: dict, save_dir: Path):
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
                     step_on_iteration=True
                 ),
+                adjust_action_prob,
             ]
         elif stage == "warmup":
             callbacks += [
