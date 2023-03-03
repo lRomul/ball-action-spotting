@@ -20,7 +20,9 @@ from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.thread_data_loader import ThreadDataLoader
+from src.ema import ModelEma, EmaMonitorCheckpoint
 from src.ball_action import constants
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment", required=True, type=str)
@@ -39,6 +41,9 @@ CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
+    min_base_lr=BASE_LR * 0.01,
+    use_ema=True,
+    ema_decay=0.9985,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
     max_targets_window_size=15,
@@ -49,7 +54,6 @@ CONFIG = dict(
     num_threads=4,
     num_epochs=[2, 14],
     stages=["warmup", "train"],
-    min_base_lr=BASE_LR * 0.01,
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
@@ -62,6 +66,8 @@ CONFIG = dict(
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
+        'amp': True,
+        'iter_size': 1,
     },
 )
 
@@ -81,6 +87,14 @@ def train_ball_action(config: dict, save_dir: Path):
         config["frame_stack_size"],
         config["frame_stack_step"],
     )
+
+    if config["use_ema"]:
+        ema_decay = config["ema_decay"]
+        print(f"EMA decay: {ema_decay}")
+        model.model_ema = ModelEma(model.nn_module, decay=ema_decay)
+        checkpoint = EmaMonitorCheckpoint
+    else:
+        checkpoint = MonitorCheckpoint
 
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         device = torch.device(config["argus_params"]["device"][0])
@@ -116,7 +130,7 @@ def train_ball_action(config: dict, save_dir: Path):
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
             callbacks += [
-                MonitorCheckpoint(save_dir, monitor="val_average_precision", max_saves=1),
+                checkpoint(save_dir, monitor="val_average_precision", max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
