@@ -34,7 +34,7 @@ def get_lr(base_lr, batch_size):
 
 
 IMAGE_SIZE = (1280, 720)
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 BASE_LR = 6e-4
 FRAME_STACK_SIZE = 15
 CONFIG = dict(
@@ -43,7 +43,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.997,
+    ema_decay=0.9995,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=2,
     max_targets_window_size=15,
