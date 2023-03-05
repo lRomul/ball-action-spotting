@@ -50,7 +50,7 @@ class AveragePrecision(PerClassMetric):
 
 
 class Accuracy(PerClassMetric):
-    name = 'accuracy'
+    name = 'binary_accuracy'
     better = 'max'
 
     def __init__(self, threshold: float = 0.5):

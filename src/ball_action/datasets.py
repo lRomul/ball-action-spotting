@@ -1,11 +1,10 @@
 import abc
 import random
-from typing import Optional, Callable, Type
+from typing import Callable, Type
 
 import numpy as np
 
 import torch
-from torch.utils.data import Dataset
 
 from src.ball_action.indexes import StackIndexesGenerator
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
@@ -13,21 +12,17 @@ from src.ball_action.target import VideoTarget
 from src.utils import set_random_seed, normalize_tensor_frames
 
 
-class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
+class ActionBallDataset(metaclass=abc.ABCMeta):
     def __init__(
             self,
             videos_data: list[dict],
             indexes_generator: StackIndexesGenerator,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
-            frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
-            gpu_id: int = 0,
     ):
         self.indexes_generator = indexes_generator
         self.frames_process_fn = frames_process_fn
         self.target_process_fn = target_process_fn
-        self.frame_fetcher_class = frame_fetcher_class
-        self.gpu_id = gpu_id
 
         self.videos_data = videos_data
         self.num_videos = len(self.videos_data)
@@ -36,8 +31,6 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
         self.videos_target = [
             VideoTarget(data) for data in self.videos_data
         ]
-
-        self.frame_fetcher: Optional[AbstractFrameFetcher] = None
 
     def __len__(self) -> int:
         return self.num_actions
@@ -48,22 +41,29 @@ class ActionBallDataset(Dataset, metaclass=abc.ABCMeta):
 
     def get_frames_targets(self,
                            video_index: int,
-                           frame_index: int) -> tuple[torch.Tensor, np.ndarray]:
+                           frame_index: int,
+                           frame_fetcher_class: Type[AbstractFrameFetcher],
+                           gpu_id: int) -> tuple[torch.Tensor, np.ndarray]:
         video_data = self.videos_data[video_index]
         frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
-        self.frame_fetcher = self.frame_fetcher_class(
+        frame_fetcher = frame_fetcher_class(
             video_data["video_path"],
-            gpu_id=self.gpu_id
+            gpu_id=gpu_id
         )
-        self.frame_fetcher.num_frames = video_data["frame_count"]
-        frames = self.frame_fetcher.fetch_frames(frame_indexes)
+        frame_fetcher.num_frames = video_data["frame_count"]
+        frames = frame_fetcher.fetch_frames(frame_indexes)
         target_indexes = list(range(min(frame_indexes), max(frame_indexes) + 1))
         targets = self.videos_target[video_index].targets(target_indexes)
         return frames, targets
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def get(self,
+            index: int,
+            frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
+            gpu_id: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
         video_index, frame_index = self.get_video_frame_indexes(index)
-        frames, targets = self.get_frames_targets(video_index, frame_index)
+        frames, targets = self.get_frames_targets(
+            video_index, frame_index, frame_fetcher_class, gpu_id
+        )
         input_tensor = self.frames_process_fn(frames)
         target_tensor = self.target_process_fn(targets)
         return input_tensor, target_tensor
@@ -79,16 +79,12 @@ class TrainActionBallDataset(ActionBallDataset):
             action_random_shift: int,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
-            frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
-            gpu_id: int = 0,
     ):
         super().__init__(
             videos_data=videos_data,
             indexes_generator=indexes_generator,
             target_process_fn=target_process_fn,
             frames_process_fn=frames_process_fn,
-            frame_fetcher_class=frame_fetcher_class,
-            gpu_id=gpu_id,
         )
         self.epoch_size = epoch_size
         self.action_prob = action_prob

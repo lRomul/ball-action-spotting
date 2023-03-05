@@ -1,5 +1,6 @@
 import json
 import argparse
+import multiprocessing
 from pathlib import Path
 
 import torch
@@ -19,7 +20,7 @@ from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
-from src.thread_data_loader import ThreadDataLoader
+from src.ball_action.data_loader import DataLoader
 from src.ema import ModelEma, EmaMonitorCheckpoint
 from src.ball_action import constants
 
@@ -51,7 +52,8 @@ CONFIG = dict(
     train_action_prob=0.5,
     train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
-    num_threads=4,
+    num_nvenc_workers=6,
+    num_opencv_workers=3,
     num_epochs=[2, 14],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
@@ -106,7 +108,6 @@ def train_ball_action(config: dict, save_dir: Path):
             action_prob=config["train_action_prob"],
             action_random_shift=config["train_action_random_shift"],
             target_process_fn=targets_processor,
-            gpu_id=device.index,
         )
         print(f"Train dataset len {len(train_dataset)}")
         val_data = get_videos_data(constants.val_games, add_empty_actions=True)
@@ -114,13 +115,18 @@ def train_ball_action(config: dict, save_dir: Path):
             val_data,
             indexes_generator=indexes_generator,
             target_process_fn=targets_processor,
-            gpu_id=device.index,
         )
         print(f"Val dataset len {len(val_dataset)}")
-        train_loader = ThreadDataLoader(train_dataset, batch_size=config["batch_size"],
-                                        num_threads=config["num_threads"])
-        val_loader = ThreadDataLoader(val_dataset, batch_size=config["batch_size"],
-                                      num_threads=config["num_threads"])
+        train_loader = DataLoader(train_dataset,
+                                  batch_size=config["batch_size"],
+                                  num_nvenc_workers=config["num_nvenc_workers"],
+                                  num_opencv_workers=config["num_opencv_workers"],
+                                  gpu_id=device.index)
+        val_loader = DataLoader(val_dataset,
+                                batch_size=config["batch_size"],
+                                num_nvenc_workers=config["num_nvenc_workers"],
+                                num_opencv_workers=config["num_opencv_workers"],
+                                gpu_id=device.index)
 
         callbacks = [
             LoggingToFile(save_dir / "log.txt", append=True),
@@ -157,6 +163,8 @@ def train_ball_action(config: dict, save_dir: Path):
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
+
     experiments_dir = Path(CONFIG["experiments_dir"])
     print("Experiment dir", experiments_dir)
     if not experiments_dir.exists():

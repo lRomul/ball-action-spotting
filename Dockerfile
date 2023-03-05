@@ -21,3 +21,5 @@ RUN pip3 install --no-cache-dir \
     SoccerNet==0.1.46 \
     rosny==0.0.6 \
     kornia==0.6.10
+
+ENV OPENCV_FFMPEG_CAPTURE_OPTIONS "video_codec;hevc"
