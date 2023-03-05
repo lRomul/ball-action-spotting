@@ -98,36 +98,36 @@ def train_ball_action(config: dict, save_dir: Path):
     else:
         checkpoint = MonitorCheckpoint
 
-    for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
-        device = torch.device(config["argus_params"]["device"][0])
-        train_data = get_videos_data(constants.train_games)
-        train_dataset = TrainActionBallDataset(
-            train_data,
-            indexes_generator=indexes_generator,
-            epoch_size=config["train_epoch_size"],
-            action_prob=config["train_action_prob"],
-            action_random_shift=config["train_action_random_shift"],
-            target_process_fn=targets_processor,
-        )
-        print(f"Train dataset len {len(train_dataset)}")
-        val_data = get_videos_data(constants.val_games, add_empty_actions=True)
-        val_dataset = ValActionBallDataset(
-            val_data,
-            indexes_generator=indexes_generator,
-            target_process_fn=targets_processor,
-        )
-        print(f"Val dataset len {len(val_dataset)}")
-        train_loader = DataLoader(train_dataset,
-                                  batch_size=config["batch_size"],
-                                  num_nvenc_workers=config["num_nvenc_workers"],
-                                  num_opencv_workers=config["num_opencv_workers"],
-                                  gpu_id=device.index)
-        val_loader = DataLoader(val_dataset,
-                                batch_size=config["batch_size"],
-                                num_nvenc_workers=config["num_nvenc_workers"],
-                                num_opencv_workers=config["num_opencv_workers"],
-                                gpu_id=device.index)
+    device = torch.device(config["argus_params"]["device"][0])
+    train_data = get_videos_data(constants.train_games)
+    train_dataset = TrainActionBallDataset(
+        train_data,
+        indexes_generator=indexes_generator,
+        epoch_size=config["train_epoch_size"],
+        action_prob=config["train_action_prob"],
+        action_random_shift=config["train_action_random_shift"],
+        target_process_fn=targets_processor,
+    )
+    print(f"Train dataset len {len(train_dataset)}")
+    val_data = get_videos_data(constants.val_games, add_empty_actions=True)
+    val_dataset = ValActionBallDataset(
+        val_data,
+        indexes_generator=indexes_generator,
+        target_process_fn=targets_processor,
+    )
+    print(f"Val dataset len {len(val_dataset)}")
+    train_loader = DataLoader(train_dataset,
+                              batch_size=config["batch_size"],
+                              num_nvenc_workers=config["num_nvenc_workers"],
+                              num_opencv_workers=config["num_opencv_workers"],
+                              gpu_id=device.index)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=config["batch_size"],
+                            num_nvenc_workers=config["num_nvenc_workers"],
+                            num_opencv_workers=config["num_opencv_workers"],
+                            gpu_id=device.index)
 
+    for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         callbacks = [
             LoggingToFile(save_dir / "log.txt", append=True),
             LoggingToCSV(save_dir / "log.csv", append=True),
@@ -160,6 +160,9 @@ def train_ball_action(config: dict, save_dir: Path):
                   callbacks=callbacks,
                   metrics=metrics,
                   metrics_on_train=True)
+
+    train_loader.stop_workers()
+    val_loader.stop_workers()
 
 
 if __name__ == "__main__":

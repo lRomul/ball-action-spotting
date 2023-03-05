@@ -1,3 +1,4 @@
+import queue
 from typing import Type
 from multiprocessing import Queue
 
@@ -15,16 +16,21 @@ class WorkerStream(ProcessStream):
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_fetcher_class: Type[AbstractFrameFetcher],
-                 gpu_id: int = 0):
+                 gpu_id: int = 0,
+                 timeout: float = 1.0):
         super().__init__()
         self._dataset = dataset
         self._index_queue = index_queue
         self._result_queue = result_queue
         self._frame_fetcher_class = frame_fetcher_class
         self._gpu_id = gpu_id
+        self._timeout = timeout
 
     def work(self):
-        index = self._index_queue.get()
+        try:
+            index = self._index_queue.get(timeout=self._timeout)
+        except queue.Empty:
+            return
         sample = self._dataset.get(index, self._frame_fetcher_class, self._gpu_id)
         self._result_queue.put(sample)
 
@@ -33,7 +39,7 @@ class WorkersStream(ComposeStream):
     def __init__(self, streams: list[ProcessStream]):
         super().__init__()
         for index, stream in enumerate(streams):
-            self.__setattr__(f"process_{index}", stream)
+            self.__setattr__(f"worker_{index}", stream)
 
 
 class DataLoader:
@@ -95,6 +101,11 @@ class DataLoader:
         self.clear_queues()
         raise StopIteration
 
+    def stop_workers(self):
+        if not self._workers_stream.stopped():
+            self._workers_stream.stop()
+        if not self._workers_stream.joined():
+            self._workers_stream.join()
+
     def __del__(self):
-        self._workers_stream.stop()
-        self._workers_stream.join()
+        self.stop_workers()
