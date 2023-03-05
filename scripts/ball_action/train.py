@@ -15,12 +15,12 @@ from argus.callbacks import (
 
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
 from src.ball_action.augmentations import get_train_augmentations
+from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
-from src.ball_action.data_loader import DataLoader
 from src.ema import ModelEma, EmaMonitorCheckpoint
 from src.ball_action import constants
 
@@ -116,16 +116,17 @@ def train_ball_action(config: dict, save_dir: Path):
         target_process_fn=targets_processor,
     )
     print(f"Val dataset len {len(val_dataset)}")
-    train_loader = DataLoader(train_dataset,
-                              batch_size=config["batch_size"],
-                              num_nvenc_workers=config["num_nvenc_workers"],
-                              num_opencv_workers=config["num_opencv_workers"],
-                              gpu_id=device.index)
-    val_loader = DataLoader(val_dataset,
-                            batch_size=config["batch_size"],
-                            num_nvenc_workers=config["num_nvenc_workers"],
-                            num_opencv_workers=config["num_opencv_workers"],
-                            gpu_id=device.index)
+    train_loader = RandomSeekDataLoader(train_dataset,
+                                        batch_size=config["batch_size"],
+                                        num_nvenc_workers=config["num_nvenc_workers"],
+                                        num_opencv_workers=config["num_opencv_workers"],
+                                        gpu_id=device.index)
+    val_loader = SequentialDataLoader(
+        val_dataset,
+        batch_size=config["batch_size"],
+        frame_buffer_size=config["frame_stack_size"] * config["frame_stack_step"],
+        gpu_id=device.index
+    )
 
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
         callbacks = [
