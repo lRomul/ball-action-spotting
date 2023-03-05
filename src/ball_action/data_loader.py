@@ -73,7 +73,7 @@ class DataLoader:
         self._workers_stream = WorkersStream(nvenc_streams + opencv_streams)
         self._workers_stream.start()
 
-        self.num_samples_left = 0
+        self._num_samples_left = 0
 
     def clear_queues(self):
         while not self._index_queue.empty():
@@ -82,18 +82,18 @@ class DataLoader:
             self._result_queue.get()
 
     def __iter__(self):
-        self.num_samples_left = len(self.dataset)
+        self._num_samples_left = len(self.dataset)
         self.clear_queues()
-        for index in range(len(self.dataset)):  # noqa
+        for index in range(len(self.dataset)):
             self._index_queue.put(index)
         return self
 
     def __next__(self):
         batch_list = []
-        while self.num_samples_left:
+        while self._num_samples_left:
             sample = self._result_queue.get()
             batch_list.append(sample)
-            self.num_samples_left -= 1
+            self._num_samples_left -= 1
             if len(batch_list) == self.batch_size:
                 return default_collate(batch_list)
         if batch_list:
