@@ -39,6 +39,11 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
     def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
         pass
 
+    def get_targets(self, video_index: int, frame_indexes: list[int]):
+        target_indexes = list(range(min(frame_indexes), max(frame_indexes) + 1))
+        targets = self.videos_target[video_index].targets(target_indexes)
+        return targets
+
     def get_frames_targets(
             self,
             video_index: int,
@@ -47,29 +52,34 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
     ) -> tuple[torch.Tensor, np.ndarray]:
         frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
         frames = frame_fetcher.fetch_frames(frame_indexes)
-        target_indexes = list(range(min(frame_indexes), max(frame_indexes) + 1))
-        targets = self.videos_target[video_index].targets(target_indexes)
+        targets = self.get_targets(video_index, frame_indexes)
         return frames, targets
 
-    def get(self,
-            index: int,
-            frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
-            gpu_id: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
-        video_index, frame_index = self.get_video_frame_indexes(index)
-
+    def get_frame_fetcher(self,
+                          video_index: int,
+                          frame_fetcher_class: Type[AbstractFrameFetcher],
+                          gpu_id: int = 0):
         video_data = self.videos_data[video_index]
         frame_fetcher = frame_fetcher_class(
             video_data["video_path"],
             gpu_id=gpu_id
         )
         frame_fetcher.num_frames = video_data["frame_count"]
+        return frame_fetcher
 
-        frames, targets = self.get_frames_targets(
-            video_index, frame_index, frame_fetcher
-        )
+    def process_frames_targets(self, frames: torch.Tensor, targets: np.ndarray):
         input_tensor = self.frames_process_fn(frames)
         target_tensor = self.target_process_fn(targets)
         return input_tensor, target_tensor
+
+    def get(self,
+            index: int,
+            frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
+            gpu_id: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
+        video_index, frame_index = self.get_video_frame_indexes(index)
+        frame_fetcher = self.get_frame_fetcher(video_index, frame_fetcher_class, gpu_id)
+        frames, targets = self.get_frames_targets(video_index, frame_index, frame_fetcher)
+        return self.process_frames_targets(frames, targets)
 
 
 class TrainActionBallDataset(ActionBallDataset):

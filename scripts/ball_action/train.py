@@ -13,9 +13,9 @@ from argus.callbacks import (
     LambdaLR,
 )
 
+from src.ball_action.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
 from src.ball_action.augmentations import get_train_augmentations
-from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator

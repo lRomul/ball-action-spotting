@@ -1,12 +1,12 @@
 import abc
 from torch.multiprocessing import Queue
 
-from rosny.abstract import AbstractStream
+from rosny.loop import LoopStream
 
 from torch.utils.data._utils.collate import default_collate
 
 
-class AbstractDataLoader(metaclass=abc.ABCMeta):
+class BaseDataLoader(metaclass=abc.ABCMeta):
     def __init__(self,
                  dataset,
                  batch_size: int,
@@ -24,7 +24,7 @@ class AbstractDataLoader(metaclass=abc.ABCMeta):
         self.start_workers()
 
     @abc.abstractmethod
-    def init_workers_stream(self) -> AbstractStream:
+    def init_workers_stream(self) -> LoopStream:
         pass
 
     def start_workers(self):

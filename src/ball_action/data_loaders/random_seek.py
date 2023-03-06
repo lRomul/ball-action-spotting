@@ -2,16 +2,16 @@ import queue
 from typing import Type
 from multiprocessing import Queue
 
-from rosny.abstract import AbstractStream
 from rosny import ProcessStream, ComposeStream
 
-from src.data_loaders.abstract import AbstractDataLoader
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher, OpencvFrameFetcher
+from src.base_data_loader import BaseDataLoader
+from src.ball_action.datasets import ActionBallDataset
 
 
-class SeekWorkerStream(ProcessStream):
+class RandomSeekWorkerStream(ProcessStream):
     def __init__(self,
-                 dataset,
+                 dataset: ActionBallDataset,
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_fetcher_class: Type[AbstractFrameFetcher],
@@ -34,16 +34,16 @@ class SeekWorkerStream(ProcessStream):
         self._result_queue.put(sample)
 
 
-class WorkersStream(ComposeStream):
+class RandomSeekWorkersStream(ComposeStream):
     def __init__(self, streams: list[ProcessStream]):
         super().__init__()
         for index, stream in enumerate(streams):
-            self.__setattr__(f"worker_{index}", stream)
+            self.__setattr__(f"random_seek_{index}", stream)
 
 
-class RandomSeekDataLoader(AbstractDataLoader):
+class RandomSeekDataLoader(BaseDataLoader):
     def __init__(self,
-                 dataset,
+                 dataset: ActionBallDataset,
                  batch_size: int,
                  num_nvenc_workers: int = 1,
                  num_opencv_workers: int = 0,
@@ -52,15 +52,15 @@ class RandomSeekDataLoader(AbstractDataLoader):
         self.num_opencv_workers = num_opencv_workers
         super().__init__(dataset=dataset, batch_size=batch_size, gpu_id=gpu_id)
 
-    def init_workers_stream(self) -> AbstractStream:
+    def init_workers_stream(self) -> RandomSeekWorkersStream:
         nvenc_streams = [
-            SeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
-                             NvDecFrameFetcher, self.gpu_id)
+            RandomSeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
+                                   NvDecFrameFetcher, self.gpu_id)
             for _ in range(self.num_nvenc_workers)
         ]
         opencv_streams = [
-            SeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
-                             OpencvFrameFetcher, self.gpu_id)
+            RandomSeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
+                                   OpencvFrameFetcher, self.gpu_id)
             for _ in range(self.num_opencv_workers)
         ]
-        return WorkersStream(nvenc_streams + opencv_streams)
+        return RandomSeekWorkersStream(nvenc_streams + opencv_streams)

@@ -5,13 +5,14 @@ from rosny import ProcessStream
 
 import torch
 
-from src.data_loaders.abstract import AbstractDataLoader
+from src.base_data_loader import BaseDataLoader
+from src.ball_action.datasets import ActionBallDataset
 from src.frame_fetchers import NvDecFrameFetcher
 
 
 class SequentialWorkerStream(ProcessStream):
     def __init__(self,
-                 dataset,
+                 dataset: ActionBallDataset,
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_buffer_size: int,
@@ -37,13 +38,9 @@ class SequentialWorkerStream(ProcessStream):
             self._last_frame_index = 0
         else:
             self._video_index = video_index
-            video_data = self._dataset.videos_data[video_index]
-            frame_fetcher = NvDecFrameFetcher(
-                video_data["video_path"],
-                gpu_id=self._gpu_id
+            self._frame_fetcher = self._dataset.get_frame_fetcher(
+                video_index, NvDecFrameFetcher, self._gpu_id
             )
-            frame_fetcher.num_frames = video_data["frame_count"]
-            self._frame_fetcher = frame_fetcher
             self._last_frame_index = 0
         self._frame_index2frame = dict()
 
@@ -61,6 +58,7 @@ class SequentialWorkerStream(ProcessStream):
     def get_sample(self, index):
         video_index, frame_index = self._dataset.get_video_frame_indexes(index)
         frame_indexes = self._dataset.indexes_generator.make_stack_indexes(frame_index)
+
         last_frame_index = max(frame_indexes)
         if video_index != self._video_index:
             self.reset(video_index)
@@ -69,12 +67,8 @@ class SequentialWorkerStream(ProcessStream):
         self.read_until_last(last_frame_index)
 
         frames = torch.stack([self._frame_index2frame[i] for i in frame_indexes], dim=0)
-        target_indexes = list(range(min(frame_indexes), max(frame_indexes) + 1))
-        targets = self._dataset.videos_target[video_index].targets(target_indexes)
-
-        input_tensor = self._dataset.frames_process_fn(frames)
-        target_tensor = self._dataset.target_process_fn(targets)
-        return input_tensor, target_tensor
+        targets = self._dataset.get_targets(video_index, frame_indexes)
+        return self._dataset.process_frames_targets(frames, targets)
 
     def work(self):
         try:
@@ -85,9 +79,9 @@ class SequentialWorkerStream(ProcessStream):
         self._result_queue.put(sample)
 
 
-class SequentialDataLoader(AbstractDataLoader):
+class SequentialDataLoader(BaseDataLoader):
     def __init__(self,
-                 dataset,
+                 dataset: ActionBallDataset,
                  batch_size: int,
                  frame_buffer_size: int,
                  gpu_id: int = 0):
