@@ -68,8 +68,8 @@ CONFIG = dict(
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
-        'amp': True,
-        'iter_size': 1,
+        "amp": True,
+        "iter_size": 1,
     },
 )
 
