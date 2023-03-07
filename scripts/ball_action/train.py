@@ -38,6 +38,7 @@ IMAGE_SIZE = (1280, 720)
 BATCH_SIZE = 4
 BASE_LR = 6e-4
 FRAME_STACK_SIZE = 15
+FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
@@ -46,7 +47,7 @@ CONFIG = dict(
     use_ema=True,
     ema_decay=0.9985,
     frame_stack_size=FRAME_STACK_SIZE,
-    frame_stack_step=2,
+    frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
     train_epoch_size=6000,
     train_action_prob=0.5,
@@ -68,6 +69,8 @@ CONFIG = dict(
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
+        "frame_stack_size": FRAME_STACK_SIZE,
+        "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
         "iter_size": 1,
     },
