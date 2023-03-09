@@ -136,13 +136,13 @@ def predict_game(model: argus.Model,
 
     half2class_actions = dict()
     halves = list(range(1, NUM_HALVES + 1))
-    halv2video_info = dict()
+    half2video_info = dict()
     for half in halves:
         class_actions, video_info = predict_video(
             model, half, game_dir, game_prediction_dir, use_saved_predictions
         )
         half2class_actions[half] = class_actions
-        halv2video_info[half] = video_info
+        half2video_info[half] = video_info
 
     results_spotting = {
         "UrlLocal": game,
@@ -150,7 +150,7 @@ def predict_game(model: argus.Model,
     }
 
     for half in halves:
-        video_info = halv2video_info[half]
+        video_info = half2video_info[half]
         for cls, (frame_indexes, confidences) in half2class_actions[half].items():
             for frame_index, confidence in zip(frame_indexes, confidences):
                 position = round(frame_index / video_info["fps"] * 1000)
