@@ -104,7 +104,7 @@ def predict_video(model: argus.Model,
             frame_indexes = raw_predictions["frame_indexes"]
             raw_predictions = raw_predictions["raw_predictions"]
     else:
-        print(f"Predict video:", video_path)
+        print("Predict video:", video_path)
         frame_indexes, raw_predictions = get_raw_predictions(
             model, video_path, video_info["frame_count"]
         )
@@ -132,7 +132,7 @@ def predict_game(model: argus.Model,
     game_dir = constants.ball_action_soccernet_dir / game
     game_prediction_dir = prediction_dir / game
     game_prediction_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Predict game:", game)
+    print("Predict game:", game)
 
     half2class_actions = dict()
     halves = list(range(1, NUM_HALVES + 1))
