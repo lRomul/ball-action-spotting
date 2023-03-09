@@ -60,7 +60,7 @@ CONFIG = dict(
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
-            "model_name": "tf_efficientnetv2_b0",
+            "model_name": "regnety_008",
             "num_classes": constants.num_classes,
             "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
