@@ -1,7 +1,6 @@
 import json
 import argparse
 from pathlib import Path
-from datetime import timedelta
 
 from tqdm import tqdm
 import numpy as np
@@ -138,9 +137,9 @@ def predict_game(model: argus.Model, game: str, prediction_dir: Path):
         for cls, (frame_indexes, confidences) in half2class_actions[half].items():
             for frame_index, confidence in zip(frame_indexes, confidences):
                 position = round(frame_index / video_info["fps"] * 1000)
-                _, minutes, seconds = str(timedelta(milliseconds=position)).split(":")
+                seconds = int(frame_index / video_info["fps"])
                 prediction = {
-                    "gameTime": f"{half} - {minutes}:{seconds}",
+                    "gameTime": f"{half} - {seconds // 60}:{seconds % 60}",
                     "label": cls,
                     "position": str(position),
                     "half": str(half),
@@ -149,7 +148,7 @@ def predict_game(model: argus.Model, game: str, prediction_dir: Path):
                 results_spotting["predictions"].append(prediction)
     results_spotting["predictions"] = sorted(
         results_spotting["predictions"],
-        key=lambda pred: int(pred["position"])
+        key=lambda pred: (int(pred["half"]), int(pred["position"]))
     )
 
     results_spotting_path = game_prediction_dir / "results_spotting.json"
