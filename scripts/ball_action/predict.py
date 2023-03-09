@@ -20,9 +20,9 @@ NUM_HALVES = 2
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
 POSTPROCESS_PARAMS = {
-    "gauss_sigma": 3.0,
-    "height": 0.3,
-    "distance": 15,
+    "gauss_sigma": 4.0,
+    "height": 0.2,
+    "distance": 24,
 }
 
 
@@ -31,6 +31,7 @@ def parse_arguments():
     parser.add_argument("--experiment", required=True, type=str)
     parser.add_argument("--split", default="test", type=str)
     parser.add_argument("--gpu_id", default=0, type=int)
+    parser.add_argument('--use_saved_predictions', action='store_true')
     return parser.parse_args()
 
 
@@ -61,9 +62,9 @@ def post_processing(frame_indexes: list[int],
     return action_frame_indexes, confidences
 
 
-def get_raw_predictions(model: argus.Model, video_path: Path) -> tuple[list[int], np.ndarray, dict]:
-    video_info = get_video_info(video_path)
-    frame_count = video_info["frame_count"]
+def get_raw_predictions(model: argus.Model,
+                        video_path: Path,
+                        frame_count: int) -> tuple[list[int], np.ndarray]:
     frame_index2frame: dict[int, torch.Tensor] = dict()
     frame_stack_size = model.params["frame_stack_size"]
     frame_stack_step = model.params["frame_stack_step"]
@@ -85,23 +86,34 @@ def get_raw_predictions(model: argus.Model, video_path: Path) -> tuple[list[int]
 
     frame_indexes = sorted(frame_index2prediction.keys())
     raw_predictions = np.stack([frame_index2prediction[i] for i in frame_indexes], axis=0)
-    return frame_indexes, raw_predictions, video_info
+    return frame_indexes, raw_predictions
 
 
 def predict_video(model: argus.Model,
                   half: int,
                   game_dir: Path,
-                  game_prediction_dir: Path) -> tuple[dict[str, tuple], dict]:
+                  game_prediction_dir: Path,
+                  use_saved_predictions: bool) -> tuple[dict[str, tuple], dict]:
     video_path = game_dir / f"{half}_{RESOLUTION}.mkv"
-    print(f"Predict video:", video_path)
-    frame_indexes, raw_predictions, video_info = get_raw_predictions(model, video_path)
+    video_info = get_video_info(video_path)
+    print("Video info:", video_info)
     raw_predictions_path = game_prediction_dir / f"{half}_raw_predictions.npz"
-    np.savez(
-        raw_predictions_path,
-        frame_indexes=frame_indexes,
-        raw_predictions=raw_predictions,
-    )
-    print("Raw predictions saved to", raw_predictions_path)
+
+    if use_saved_predictions:
+        with np.load(str(raw_predictions_path)) as raw_predictions:
+            frame_indexes = raw_predictions["frame_indexes"]
+            raw_predictions = raw_predictions["raw_predictions"]
+    else:
+        print(f"Predict video:", video_path)
+        frame_indexes, raw_predictions = get_raw_predictions(
+            model, video_path, video_info["frame_count"]
+        )
+        np.savez(
+            raw_predictions_path,
+            frame_indexes=frame_indexes,
+            raw_predictions=raw_predictions,
+        )
+        print("Raw predictions saved to", raw_predictions_path)
 
     class2actions = dict()
     for cls, cls_index in constants.class2target.items():
@@ -113,7 +125,10 @@ def predict_video(model: argus.Model,
     return class2actions, video_info
 
 
-def predict_game(model: argus.Model, game: str, prediction_dir: Path):
+def predict_game(model: argus.Model,
+                 game: str,
+                 prediction_dir: Path,
+                 use_saved_predictions: bool):
     game_dir = constants.ball_action_soccernet_dir / game
     game_prediction_dir = prediction_dir / game
     game_prediction_dir.mkdir(parents=True, exist_ok=True)
@@ -123,7 +138,9 @@ def predict_game(model: argus.Model, game: str, prediction_dir: Path):
     halves = list(range(1, NUM_HALVES + 1))
     halv2video_info = dict()
     for half in halves:
-        class_actions, video_info = predict_video(model, half, game_dir, game_prediction_dir)
+        class_actions, video_info = predict_video(
+            model, half, game_dir, game_prediction_dir, use_saved_predictions
+        )
         half2class_actions[half] = class_actions
         halv2video_info[half] = video_info
 
@@ -155,9 +172,11 @@ def predict_game(model: argus.Model, game: str, prediction_dir: Path):
     with open(results_spotting_path, "w") as outfile:
         json.dump(results_spotting, outfile, indent=4)
     print("Spotting results saved to", results_spotting_path)
+    with open(game_prediction_dir / "postprocess_params.json", "w") as outfile:
+        json.dump(POSTPROCESS_PARAMS, outfile, indent=4)
 
 
-def predict_games(experiment: str, split: str, gpu_id: int):
+def predict_games(experiment: str, split: str, gpu_id: int, use_saved_predictions: bool):
     print(f"Predict games: {experiment=}, {split=}, {gpu_id=}")
     experiment_dir = constants.experiments_dir / experiment
     model_path = get_best_model_path(experiment_dir)
@@ -170,9 +189,9 @@ def predict_games(experiment: str, split: str, gpu_id: int):
         print(f"Folder {prediction_dir} already exists.")
     games = constants.split2games[split]
     for game in games:
-        predict_game(model, game, prediction_dir)
+        predict_game(model, game, prediction_dir, use_saved_predictions)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    predict_games(args.experiment, args.split, args.gpu_id)
+    predict_games(args.experiment, args.split, args.gpu_id, args.use_saved_predictions)
