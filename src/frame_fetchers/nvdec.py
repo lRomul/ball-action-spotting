@@ -13,7 +13,7 @@ from src.frame_fetchers.abstract import AbstractFrameFetcher
 class NvDecFrameFetcher(AbstractFrameFetcher):
     def __init__(self, video_path: str | Path, gpu_id: int):
         super().__init__(video_path=video_path, gpu_id=gpu_id)
-        self._nv_dec = nvc.PyNvDecoder(video_path, self.gpu_id)
+        self._nv_dec = nvc.PyNvDecoder(str(self.video_path), self.gpu_id)
         self.num_frames = self._nv_dec.Numframes()
         self.width = self._nv_dec.Width()
         self.height = self._nv_dec.Height()
