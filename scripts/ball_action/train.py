@@ -60,10 +60,12 @@ CONFIG = dict(
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
-            "model_name": "tf_efficientnetv2_b1",
+            "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
             "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
+            "drop_rate": 0.2,
+            "drop_path_rate": 0.2,
         }),
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
