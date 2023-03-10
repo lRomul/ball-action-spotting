@@ -1,8 +1,8 @@
 import queue
 from typing import Type
-from multiprocessing import Queue
 
 from rosny import ProcessStream, ComposeStream
+from torch.multiprocessing import Queue
 
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher, OpencvFrameFetcher
 from src.base_data_loader import BaseDataLoader

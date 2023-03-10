@@ -1,9 +1,9 @@
 import json
 import argparse
-import multiprocessing
 from pathlib import Path
 
 import torch
+from torch import multiprocessing
 
 from argus.callbacks import (
     MonitorCheckpoint,
@@ -60,7 +60,7 @@ CONFIG = dict(
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
-            "model_name": "regnety_016",
+            "model_name": "tf_efficientnetv2_b1",
             "num_classes": constants.num_classes,
             "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
