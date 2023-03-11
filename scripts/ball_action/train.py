@@ -53,8 +53,8 @@ CONFIG = dict(
     train_action_prob=0.5,
     train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
-    num_nvenc_workers=5,
-    num_opencv_workers=2,
+    num_nvenc_workers=4,
+    num_opencv_workers=6,
     num_epochs=[2, 16],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
@@ -78,9 +78,9 @@ CONFIG = dict(
         "size": IMAGE_SIZE,
     },
     mixup_params={
-        "prob": 0.75,
-        "dist_type": "uniform",
-        "dist_args": [0, 0.5],
+        "prob": 1.0,
+        "dist_type": "beta",
+        "dist_args": [0.4, 0.4],
     }
 )
 
