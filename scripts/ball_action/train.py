@@ -78,9 +78,9 @@ CONFIG = dict(
         "size": IMAGE_SIZE,
     },
     mixup_params={
-        "prob": 0.5,
-        "dist_type": "uniform",
-        "dist_args": [0, 0.5],
+        "prob": 1.0,
+        "dist_type": "beta",
+        "dist_args": [0.4, 0.4],
     }
 )
 
