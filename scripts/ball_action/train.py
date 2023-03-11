@@ -55,7 +55,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=5,
     num_opencv_workers=2,
-    num_epochs=[2, 14],
+    num_epochs=[2, 12],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
@@ -64,8 +64,6 @@ CONFIG = dict(
             "num_classes": constants.num_classes,
             "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
-            "drop_rate": 0.2,
-            "drop_path_rate": 0.2,
         }),
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
