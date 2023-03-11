@@ -55,15 +55,17 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=6,
     num_opencv_workers=2,
-    num_epochs=[2, 16],
+    num_epochs=[2, 24],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("timm", {
-            "model_name": "tf_efficientnetv2_b0",
+            "model_name": "tf_efficientnetv2_b1",
             "num_classes": constants.num_classes,
             "in_chans": FRAME_STACK_SIZE,
             "pretrained": True,
+            "drop_rate": 0.2,
+            "drop_path_rate": 0.2,
         }),
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
@@ -78,9 +80,9 @@ CONFIG = dict(
         "size": IMAGE_SIZE,
     },
     mixup_params={
-        "prob": 0.75,
-        "dist_type": "uniform",
-        "dist_args": [0, 0.5],
+        "prob": 1.0,
+        "dist_type": "beta",
+        "dist_args": [0.4, 0.4],
     }
 )
 
