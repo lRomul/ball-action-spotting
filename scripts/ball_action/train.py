@@ -6,7 +6,7 @@ import torch
 from torch import multiprocessing
 
 from argus.callbacks import (
-    MonitorCheckpoint,
+    Checkpoint,
     LoggingToFile,
     LoggingToCSV,
     CosineAnnealingLR,
@@ -20,7 +20,7 @@ from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
-from src.ema import ModelEma, EmaMonitorCheckpoint
+from src.ema import ModelEma, EmaCheckpoint
 from src.utils import normalize_tensor_frames
 from src.ball_action import constants
 
@@ -76,6 +76,11 @@ CONFIG = dict(
     },
     augmentations_params={
         "size": IMAGE_SIZE,
+    },
+    mixup_params={
+        "prob": 0.5,
+        "dist_type": "uniform",
+        "dist_args": [0, 0.5],
     }
 )
 
@@ -97,9 +102,9 @@ def train_ball_action(config: dict, save_dir: Path):
         ema_decay = config["ema_decay"]
         print(f"EMA decay: {ema_decay}")
         model.model_ema = ModelEma(model.nn_module, decay=ema_decay)
-        checkpoint = EmaMonitorCheckpoint
+        checkpoint = EmaCheckpoint
     else:
-        checkpoint = MonitorCheckpoint
+        checkpoint = Checkpoint
 
     device = torch.device(config["argus_params"]["device"][0])
     train_data = get_videos_data(constants.train_games)
@@ -122,11 +127,14 @@ def train_ball_action(config: dict, save_dir: Path):
         frames_process_fn=normalize_tensor_frames,
     )
     print(f"Val dataset len {len(val_dataset)}")
-    train_loader = RandomSeekDataLoader(train_dataset,
-                                        batch_size=config["batch_size"],
-                                        num_nvenc_workers=config["num_nvenc_workers"],
-                                        num_opencv_workers=config["num_opencv_workers"],
-                                        gpu_id=device.index)
+    train_loader = RandomSeekDataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        num_nvenc_workers=config["num_nvenc_workers"],
+        num_opencv_workers=config["num_opencv_workers"],
+        gpu_id=device.index,
+        mixup_params=config["mixup_params"],
+    )
     val_loader = SequentialDataLoader(
         val_dataset,
         batch_size=config["batch_size"],
@@ -143,7 +151,11 @@ def train_ball_action(config: dict, save_dir: Path):
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
             callbacks += [
-                checkpoint(save_dir, monitor="val_average_precision", max_saves=1),
+                checkpoint(
+                    save_dir,
+                    file_format="model-{epoch:03d}-{val_average_precision:.6f}.pth",
+                    max_saves=1
+                ),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
@@ -165,8 +177,7 @@ def train_ball_action(config: dict, save_dir: Path):
                   val_loader=val_loader,
                   num_epochs=num_epochs,
                   callbacks=callbacks,
-                  metrics=metrics,
-                  metrics_on_train=True)
+                  metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()
