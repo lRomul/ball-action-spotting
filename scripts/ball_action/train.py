@@ -15,13 +15,13 @@ from argus.callbacks import (
 
 from src.ball_action.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
-from src.ball_action.augmentations import get_train_augmentations
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaMonitorCheckpoint
+from src.utils import normalize_tensor_frames
 from src.ball_action import constants
 
 
@@ -74,6 +74,9 @@ CONFIG = dict(
         "amp": True,
         "iter_size": 1,
     },
+    augmentations_params={
+        "size": IMAGE_SIZE,
+    }
 )
 
 
@@ -81,9 +84,6 @@ def train_ball_action(config: dict, save_dir: Path):
     model = BallActionModel(config["argus_params"])
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
-
-    augmentations = get_train_augmentations(config["image_size"][::-1])
-    model.augmentations = augmentations
 
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]
@@ -110,6 +110,8 @@ def train_ball_action(config: dict, save_dir: Path):
         action_prob=config["train_action_prob"],
         action_random_shift=config["train_action_random_shift"],
         target_process_fn=targets_processor,
+        frames_process_fn=normalize_tensor_frames,
+        augmentations_params=config["augmentations_params"],
     )
     print(f"Train dataset len {len(train_dataset)}")
     val_data = get_videos_data(constants.val_games, add_empty_actions=True)
@@ -117,6 +119,7 @@ def train_ball_action(config: dict, save_dir: Path):
         val_data,
         indexes_generator=indexes_generator,
         target_process_fn=targets_processor,
+        frames_process_fn=normalize_tensor_frames,
     )
     print(f"Val dataset len {len(val_dataset)}")
     train_loader = RandomSeekDataLoader(train_dataset,

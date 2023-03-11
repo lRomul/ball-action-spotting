@@ -6,13 +6,13 @@ from rosny import ProcessStream
 import torch
 
 from src.base_data_loader import BaseDataLoader
-from src.ball_action.datasets import ActionBallDataset
+from src.ball_action.datasets import ValActionBallDataset
 from src.frame_fetchers import NvDecFrameFetcher
 
 
 class SequentialWorkerStream(ProcessStream):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ValActionBallDataset,
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_buffer_size: int,
@@ -55,6 +55,7 @@ class SequentialWorkerStream(ProcessStream):
             if frame_index == last_frame_index:
                 break
 
+    @torch.no_grad()
     def get_sample(self, index):
         video_index, frame_index = self._dataset.get_video_frame_indexes(index)
         frame_indexes = self._dataset.indexes_generator.make_stack_indexes(frame_index)
@@ -81,7 +82,7 @@ class SequentialWorkerStream(ProcessStream):
 
 class SequentialDataLoader(BaseDataLoader):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ValActionBallDataset,
                  batch_size: int,
                  frame_buffer_size: int,
                  gpu_id: int = 0):

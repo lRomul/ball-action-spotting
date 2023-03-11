@@ -1,14 +1,16 @@
 import abc
 import random
-from typing import Callable, Type
+from typing import Callable, Type, Optional
 
 import numpy as np
 
 import torch
+from torch import nn
 
-from src.ball_action.indexes import StackIndexesGenerator
-from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
+from src.ball_action.indexes import StackIndexesGenerator
+from src.ball_action.augmentations import get_train_augmentations
+from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.utils import set_random_seed, normalize_tensor_frames
 
 
@@ -19,10 +21,13 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
             indexes_generator: StackIndexesGenerator,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
+            augmentations_params: Optional[dict] = None,
     ):
         self.indexes_generator = indexes_generator
-        self.frames_process_fn = frames_process_fn
         self.target_process_fn = target_process_fn
+        self.frames_process_fn = frames_process_fn
+        self.augmentations_params = augmentations_params
+        self._augmentations: Optional[nn.Module] = None
 
         self.videos_data = videos_data
         self.num_videos = len(self.videos_data)
@@ -67,11 +72,21 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
         frame_fetcher.num_frames = video_data["frame_count"]
         return frame_fetcher
 
+    def augmentations(self, frames):
+        if self.augmentations_params is not None:
+            if self._augmentations is None:
+                augmentations = get_train_augmentations(**self.augmentations_params)
+                self._augmentations = augmentations.to(device=frames.device)
+            frames = self._augmentations(frames.unsqueeze(0))[0]
+        return frames
+
     def process_frames_targets(self, frames: torch.Tensor, targets: np.ndarray):
         input_tensor = self.frames_process_fn(frames)
+        input_tensor = self.augmentations(input_tensor)
         target_tensor = self.target_process_fn(targets)
         return input_tensor, target_tensor
 
+    @torch.no_grad()
     def get(self,
             index: int,
             frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
@@ -92,12 +107,14 @@ class TrainActionBallDataset(ActionBallDataset):
             action_random_shift: int,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
+            augmentations_params: Optional[dict] = None,
     ):
         super().__init__(
             videos_data=videos_data,
             indexes_generator=indexes_generator,
             target_process_fn=target_process_fn,
             frames_process_fn=frames_process_fn,
+            augmentations_params=augmentations_params,
         )
         self.epoch_size = epoch_size
         self.action_prob = action_prob
