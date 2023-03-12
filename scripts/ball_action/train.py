@@ -34,7 +34,7 @@ def get_lr(base_lr, batch_size):
     return base_lr * (batch_size / 8)
 
 
-IMAGE_SIZE = (1280, 720)
+IMAGE_SIZE = (640, 360)
 BATCH_SIZE = 4
 BASE_LR = 6e-4
 FRAME_STACK_SIZE = 15
@@ -71,7 +71,7 @@ CONFIG = dict(
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
-        "amp": False,
+        "amp": True,
         "iter_size": 1,
     },
 )
