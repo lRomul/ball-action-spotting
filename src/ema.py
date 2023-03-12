@@ -7,7 +7,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from argus.utils import deep_to
 from argus.engine import State
-from argus.callbacks import MonitorCheckpoint
+from argus.callbacks import Checkpoint
 
 
 class ModelEma:
@@ -75,7 +75,7 @@ class ModelEma:
                 ema_v.copy_(ema_v * self.decay + (1. - self.decay) * model_v)
 
 
-class EmaMonitorCheckpoint(MonitorCheckpoint):
+class EmaCheckpoint(Checkpoint):
     def save_model(self, state: State, file_path):
         nn_module = state.model.model_ema.ema
         if isinstance(nn_module, (DataParallel, DistributedDataParallel)):

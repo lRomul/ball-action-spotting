@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 
 from argus.callbacks import (
-    MonitorCheckpoint,
+    Checkpoint,
     LoggingToFile,
     LoggingToCSV,
     CosineAnnealingLR,
@@ -21,7 +21,7 @@ from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
-from src.ema import ModelEma, EmaMonitorCheckpoint
+from src.ema import ModelEma, EmaCheckpoint
 from src.ball_action import constants
 
 
@@ -97,9 +97,9 @@ def train_ball_action(config: dict, save_dir: Path):
         ema_decay = config["ema_decay"]
         print(f"EMA decay: {ema_decay}")
         model.model_ema = ModelEma(model.nn_module, decay=ema_decay)
-        checkpoint = EmaMonitorCheckpoint
+        checkpoint = EmaCheckpoint
     else:
-        checkpoint = MonitorCheckpoint
+        checkpoint = Checkpoint
 
     device = torch.device(config["argus_params"]["device"][0])
     train_data = get_videos_data(constants.train_games)
@@ -139,8 +139,9 @@ def train_ball_action(config: dict, save_dir: Path):
 
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
+            checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
-                checkpoint(save_dir, monitor="val_average_precision", max_saves=1),
+                checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
@@ -162,8 +163,7 @@ def train_ball_action(config: dict, save_dir: Path):
                   val_loader=val_loader,
                   num_epochs=num_epochs,
                   callbacks=callbacks,
-                  metrics=metrics,
-                  metrics_on_train=True)
+                  metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()
