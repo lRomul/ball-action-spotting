@@ -53,8 +53,8 @@ CONFIG = dict(
     train_action_prob=0.5,
     train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
-    num_nvenc_workers=5,
-    num_opencv_workers=2,
+    num_nvenc_workers=3,
+    num_opencv_workers=1,
     num_epochs=[2, 12],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
@@ -75,7 +75,7 @@ CONFIG = dict(
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 1,
     },
 )
 
