@@ -53,16 +53,19 @@ CONFIG = dict(
     train_action_prob=0.5,
     train_action_random_shift=4,
     metric_accuracy_threshold=0.5,
-    num_nvenc_workers=5,
-    num_opencv_workers=2,
+    num_nvenc_workers=3,
+    num_opencv_workers=1,
     num_epochs=[2, 12],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
-        "nn_module": ("timm", {
+        "nn_module": ("multidim_stacker", {
             "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
-            "in_chans": FRAME_STACK_SIZE,
+            "num_frames": FRAME_STACK_SIZE,
+            "conv2d_stack": 3,
+            "num_conv3d_features": 512,
+            "num_conv3d_hidden": 256,
             "pretrained": True,
         }),
         "loss": "BCEWithLogitsLoss",

@@ -8,10 +8,13 @@ import argus
 from argus.engine import State
 from argus.utils import deep_to, deep_detach, deep_chunk
 
+from src.models.multidim_stacker import MultiDimStacker
+
 
 class BallActionModel(argus.Model):
     nn_module = {
         "timm": timm.create_model,
+        "multidim_stacker": MultiDimStacker,
     }
     prediction_transform = nn.Sigmoid
 
