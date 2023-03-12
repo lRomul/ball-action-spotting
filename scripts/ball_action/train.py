@@ -82,7 +82,7 @@ def train_ball_action(config: dict, save_dir: Path):
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
 
-    augmentations = get_train_augmentations(config["image_size"][::-1])
+    augmentations = get_train_augmentations(config["image_size"])
     model.augmentations = augmentations
 
     targets_processor = MaxWindowTargetsProcessor(

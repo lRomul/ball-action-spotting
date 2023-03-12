@@ -3,6 +3,7 @@ import kornia.augmentation as augm
 
 
 def get_train_augmentations(size: tuple[int, int]) -> nn.Module:
+    size = size[::-1]
     ratio = size[0] / size[1]
     transforms = nn.Sequential(
         augm.RandomAffine(degrees=(-10, 10), p=0.5),

@@ -177,6 +177,7 @@ def predict_game(model: argus.Model,
 
 
 def predict_games(experiment: str, split: str, gpu_id: int, use_saved_predictions: bool):
+    assert split in {"train", "val", "test", "challenge"}
     print(f"Predict games: {experiment=}, {split=}, {gpu_id=}")
     experiment_dir = constants.experiments_dir / experiment
     model_path = get_best_model_path(experiment_dir)

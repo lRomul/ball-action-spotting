@@ -6,18 +6,23 @@ from SoccerNet.Downloader import SoccerNetDownloader
 
 
 parser = argparse.ArgumentParser(
-    description='Prepare data for ball pass and drive action spotting.')
-
+    description='Prepare data for ball pass and drive action spotting.'
+)
 parser.add_argument('--dataset_dir', type=str, required=True,
                     help="Path for dataset directory ")
 parser.add_argument('--password_videos', type=str, required=True,
                     help="Password to videos from the NDA")
+parser.add_argument('--only_train_val', action='store_true',
+                    help="Download only train and valid splits")
 args = parser.parse_args()
-
-list_splits = ["train", "valid", "test", "challenge"]
 
 
 if __name__ == "__main__":
+    if args.only_train_val:
+        list_splits = ["train", "valid"]
+    else:
+        list_splits = ["train", "valid", "test", "challenge"]
+
     # Download zipped folder per split
     soccernet_downloader = SoccerNetDownloader(LocalDirectory=args.dataset_dir)
     soccernet_downloader.downloadDataTask(
