@@ -71,7 +71,7 @@ CONFIG = dict(
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
-        "amp": True,
+        "amp": False,
         "iter_size": 1,
     },
 )
