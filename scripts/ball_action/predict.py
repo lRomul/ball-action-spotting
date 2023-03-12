@@ -20,9 +20,9 @@ NUM_HALVES = 2
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
 POSTPROCESS_PARAMS = {
-    "gauss_sigma": 4.0,
+    "gauss_sigma": 3.0,
     "height": 0.2,
-    "distance": 24,
+    "distance": 15,
 }
 
 

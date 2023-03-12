@@ -1,6 +1,8 @@
 import json
 import argparse
 
+import numpy as np
+
 from SoccerNet.Evaluation.ActionSpotting import evaluate
 
 from src.ball_action import constants
@@ -25,20 +27,22 @@ def evaluate_predictions(experiment: str, split: str):
         split="valid" if split == "val" else split,
         version=2,
         prediction_file="results_spotting.json",
-        metric="tight",
+        metric="at1",
         num_classes=constants.num_classes,
         label_files='Labels-ball.json',
         dataset="Ball",
         framerate=25,
     )
 
-    print("tight Average mAP: ", results["a_mAP"])
-    print("tight Average mAP per class: ", results["a_mAP_per_class"])
+    print("Average mAP@1: ", results["a_mAP"])
+    print("Average mAP@1 per class: ", results["a_mAP_per_class"])
 
     evaluate_results_path = predictions_path / "evaluate_results.json"
-    print("Evaluate results saved to", evaluate_results_path)
+    results = {key: (float(value) if np.isscalar(value) else list(value))
+               for key, value in results.items()}
     with open(evaluate_results_path, "w") as outfile:
         json.dump(results, outfile, indent=4)
+    print("Evaluate results saved to", evaluate_results_path)
     print("Results:", results)
 
 
