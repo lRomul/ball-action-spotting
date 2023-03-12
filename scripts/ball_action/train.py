@@ -59,10 +59,13 @@ CONFIG = dict(
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
-        "nn_module": ("timm", {
+        "nn_module": ("multidim_stacker", {
             "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
-            "in_chans": FRAME_STACK_SIZE,
+            "num_frames": FRAME_STACK_SIZE,
+            "conv2d_stack": 3,
+            "num_conv3d_features": 512,
+            "num_conv3d_hidden": 256,
             "pretrained": True,
         }),
         "loss": "BCEWithLogitsLoss",
@@ -71,8 +74,8 @@ CONFIG = dict(
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
-        "amp": False,
-        "iter_size": 1,
+        "amp": True,
+        "iter_size": 2,
     },
 )
 
