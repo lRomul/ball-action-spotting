@@ -4,7 +4,6 @@ import random
 from pathlib import Path
 
 import numpy as np
-import torch
 import cv2  # type: ignore
 
 
@@ -23,11 +22,6 @@ def set_random_seed(index: int):
     seed = int(time.time() * 1000.0) + index
     random.seed(seed)
     np.random.seed(seed % (2 ** 32 - 1))
-
-
-def normalize_tensor_frames(frames: torch.Tensor) -> torch.Tensor:
-    frames = frames.to(torch.float32) / 255.0
-    return frames
 
 
 def get_best_model_path(dir_path, return_score=False, more_better=True):

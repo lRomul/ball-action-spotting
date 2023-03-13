@@ -107,11 +107,11 @@ class MultiDimStacker(nn.Module):
         )
 
     def forward(self, frames):
-        b, t, h, w = frames.shape  # (2, 15, 720, 1280)
+        b, t, h, w = frames.shape  # (2, 15, 736, 1280)
         assert t == self.num_frames
         stacked_frames = frames.view(
             b * self.num_stacks, self.conv2d_stack, h, w
-        )  # (10, 3, 720, 1280)
+        )  # (10, 3, 736, 1280)
         conv2d_features = self.conv2d_encoder.forward_features(
             stacked_frames
         )  # (10, 1280, 23, 40)

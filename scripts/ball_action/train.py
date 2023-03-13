@@ -22,6 +22,7 @@ from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaCheckpoint
+from src.frames import get_frames_processor
 from src.ball_action import constants
 
 
@@ -34,7 +35,7 @@ def get_lr(base_lr, batch_size):
     return base_lr * (batch_size / 8)
 
 
-IMAGE_SIZE = (640, 360)
+IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 6e-4
 FRAME_STACK_SIZE = 15
@@ -76,6 +77,11 @@ CONFIG = dict(
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
         "iter_size": 1,
+        "frames_processor": ("pad_normalize", {
+            "size": IMAGE_SIZE,
+            "pad_mode": "constant",
+            "fill_value": 0,
+        }),
     },
 )
 
@@ -91,6 +97,7 @@ def train_ball_action(config: dict, save_dir: Path):
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]
     )
+    frames_processor = get_frames_processor(*config["argus_params"]["frames_processor"])
     indexes_generator = StackIndexesGenerator(
         config["frame_stack_size"],
         config["frame_stack_step"],
@@ -113,6 +120,7 @@ def train_ball_action(config: dict, save_dir: Path):
         action_prob=config["train_action_prob"],
         action_random_shift=config["train_action_random_shift"],
         target_process_fn=targets_processor,
+        frames_process_fn=frames_processor,
     )
     print(f"Train dataset len {len(train_dataset)}")
     val_data = get_videos_data(constants.val_games, add_empty_actions=True)
@@ -120,6 +128,7 @@ def train_ball_action(config: dict, save_dir: Path):
         val_data,
         indexes_generator=indexes_generator,
         target_process_fn=targets_processor,
+        frames_process_fn=frames_processor,
     )
     print(f"Val dataset len {len(val_dataset)}")
     train_loader = RandomSeekDataLoader(train_dataset,

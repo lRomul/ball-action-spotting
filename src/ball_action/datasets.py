@@ -9,7 +9,7 @@ import torch
 from src.ball_action.indexes import StackIndexesGenerator
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
-from src.utils import set_random_seed, normalize_tensor_frames
+from src.utils import set_random_seed
 
 
 class ActionBallDataset(metaclass=abc.ABCMeta):
@@ -18,7 +18,7 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
             videos_data: list[dict],
             indexes_generator: StackIndexesGenerator,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
-            frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
+            frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
     ):
         self.indexes_generator = indexes_generator
         self.frames_process_fn = frames_process_fn
@@ -91,7 +91,7 @@ class TrainActionBallDataset(ActionBallDataset):
             action_prob: float,
             action_random_shift: int,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
-            frames_process_fn: Callable[[torch.Tensor], torch.Tensor] = normalize_tensor_frames,
+            frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
     ):
         super().__init__(
             videos_data=videos_data,

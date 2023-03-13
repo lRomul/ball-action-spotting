@@ -11,8 +11,9 @@ import torch
 import argus
 
 from src.ball_action.indexes import StackIndexesGenerator
+from src.utils import get_best_model_path, get_video_info
 from src.frame_fetchers import NvDecFrameFetcher
-from src.utils import get_best_model_path, get_video_info, normalize_tensor_frames
+from src.frames import get_frames_processor
 from src.ball_action import constants
 
 
@@ -65,6 +66,7 @@ def post_processing(frame_indexes: list[int],
 def get_raw_predictions(model: argus.Model,
                         video_path: Path,
                         frame_count: int) -> tuple[list[int], np.ndarray]:
+    frames_processor = get_frames_processor(*model.params["frames_processor"])
     frame_index2frame: dict[int, torch.Tensor] = dict()
     frame_stack_size = model.params["frame_stack_size"]
     frame_stack_step = model.params["frame_stack_step"]
@@ -80,7 +82,7 @@ def get_raw_predictions(model: argus.Model,
         frame_indexes = indexes_generator.make_stack_indexes(frame_index)
         read_until_last(frame_fetcher, frame_index2frame, frame_buffer_size, max(frame_indexes))
         frames = torch.stack([frame_index2frame[i] for i in frame_indexes], dim=0)
-        frames = normalize_tensor_frames(frames.unsqueeze(0))
+        frames = frames_processor(frames.unsqueeze(0))
         prediction = model.predict(frames)[0].cpu().numpy()
         frame_index2prediction[frame_index] = prediction
 
