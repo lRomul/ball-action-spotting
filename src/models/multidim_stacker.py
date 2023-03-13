@@ -79,7 +79,7 @@ class MultiDimStacker(nn.Module):
                  num_classes: int,
                  num_frames: int = 15,
                  stack_size: int = 3,
-                 index_2d_features=4,
+                 index_2d_features: int = 4,
                  num_3d_features: int = 512,
                  num_3d_hidden: int = 256,
                  num_3d_stack_proj: int = 256,
