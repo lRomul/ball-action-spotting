@@ -67,7 +67,7 @@ CONFIG = dict(
             "stack_size": 3,
             "index_2d_features": 4,
             "pretrained": True,
-            "num_3d_blocks": 1,
+            "num_3d_blocks": 3,
             "num_3d_features": 192,
             "expansion_3d_ratio": 6,
             "se_reduce_3d_ratio": 24,
