@@ -83,7 +83,7 @@ CONFIG = dict(
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 1,
         "frames_processor": ("pad_normalize", {
             "size": IMAGE_SIZE,
             "pad_mode": "constant",
