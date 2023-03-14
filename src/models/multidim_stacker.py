@@ -21,7 +21,7 @@ class BatchNormAct3d(nn.Module):
     def __init__(self,
                  num_features: int,
                  act_layer=nn.ReLU,
-                 apply_act=True,
+                 apply_act: bool = True,
                  inplace_act: bool = True):
         super().__init__()
         self.bn3d = nn.BatchNorm3d(num_features)
@@ -38,8 +38,8 @@ class BatchNormAct3d(nn.Module):
 
 class SqueezeExcite(nn.Module):
     def __init__(self,
-                 in_features,
-                 reduce_ratio=24,
+                 in_features: int,
+                 reduce_ratio: int = 8,
                  act_layer=nn.ReLU,
                  gate_layer=nn.Sigmoid):
         super().__init__()
@@ -62,30 +62,29 @@ class InvertedResidual3d(nn.Module):
                  in_features: int,
                  out_features: int,
                  expansion_ratio: int = 6,
+                 se_reduce_ratio: int = 24,
                  act_layer=nn.ReLU,
                  drop_path_rate: float = 0.,
                  bias: bool = False):
         super().__init__()
-
-        mid_chs = in_features * expansion_ratio
-        groups = mid_chs
+        mid_features = in_features * expansion_ratio
 
         # Point-wise expansion
-        self.conv_pw = nn.Conv3d(in_features, mid_chs, (1, 1, 1), bias=bias)
-        self.bn1 = BatchNormAct3d(mid_chs, act_layer=act_layer)
+        self.conv_pw = nn.Conv3d(in_features, mid_features, (1, 1, 1), bias=bias)
+        self.bn1 = BatchNormAct3d(mid_features, act_layer=act_layer)
 
         # Depth-wise convolution
-        self.conv_dw = nn.Conv3d(mid_chs, mid_chs,
+        self.conv_dw = nn.Conv3d(mid_features, mid_features,
                                  kernel_size=(3, 3, 3), stride=(1, 1, 1),
                                  dilation=(1, 1, 1), padding=(1, 1, 1),
-                                 groups=groups, bias=bias)
-        self.bn2 = BatchNormAct3d(mid_chs, act_layer=act_layer)
+                                 groups=mid_features, bias=bias)
+        self.bn2 = BatchNormAct3d(mid_features, act_layer=act_layer)
 
         # Squeeze-and-excitation
-        self.se = SqueezeExcite(mid_chs, act_layer=act_layer)
+        self.se = SqueezeExcite(mid_features, act_layer=act_layer, reduce_ratio=se_reduce_ratio)
 
         # Point-wise linear projection
-        self.conv_pwl = nn.Conv3d(mid_chs, out_features, (1, 1, 1), bias=bias)
+        self.conv_pwl = nn.Conv3d(mid_features, out_features, (1, 1, 1), bias=bias)
         self.bn3 = BatchNormAct3d(out_features, apply_act=False)
         self.drop_path = DropPath(drop_path_rate) if drop_path_rate else nn.Identity()
 
@@ -109,9 +108,12 @@ class MultiDimStacker(nn.Module):
                  num_frames: int = 15,
                  stack_size: int = 3,
                  index_2d_features: int = 4,
+                 pretrained: bool = False,
+                 num_3d_blocks: int = 2,
                  num_3d_features: int = 192,
                  num_3d_stack_proj: int = 256,
-                 pretrained: bool = False,
+                 expansion_3d_ratio: int = 6,
+                 se_reduce_3d_ratio: int = 24,
                  drop_rate: bool = 0.,
                  drop_path_rate: float = 0.,
                  act_layer: str = "silu",
@@ -149,12 +151,16 @@ class MultiDimStacker(nn.Module):
             norm_act_layer(num_3d_features, inplace=True)
         )
 
-        self.conv3d_encoder = InvertedResidual3d(
-            num_3d_features,
-            num_3d_features,
-            act_layer=act_layer,
-            drop_path_rate=drop_path_rate,
-        )
+        self.conv3d_encoder = nn.Sequential(*[
+            InvertedResidual3d(
+                num_3d_features,
+                num_3d_features,
+                expansion_ratio=expansion_3d_ratio,
+                se_reduce_ratio=se_reduce_3d_ratio,
+                act_layer=act_layer,
+                drop_path_rate=drop_path_rate,
+            ) for _ in range(num_3d_blocks)
+        ])
 
         self.conv3d_projection = nn.Sequential(
             create_conv2d(
