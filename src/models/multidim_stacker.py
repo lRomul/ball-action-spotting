@@ -3,11 +3,7 @@ Single-stage model combining 2.5D and 3D data to properly extract temporal infor
 from the video data.
 Original idea:
 https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932
-Implementation example:
-https://www.kaggle.com/competitions/nfl-player-contact-detection/discussion/392402#2170010
 """
-
-from typing import Optional, Type
 
 from torch import nn
 
@@ -21,54 +17,87 @@ from timm.models.layers import (
 )
 
 
-class Conv3dNormAct(nn.Module):
+class BatchNormAct3d(nn.Module):
     def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 act_layer: Optional[Type] = nn.ReLU,
-                 act_inplace: bool = True,
-                 padding="same"):
+                 num_features: int,
+                 act_layer=nn.ReLU,
+                 apply_act=True,
+                 inplace_act: bool = True):
         super().__init__()
-        self.num_features = in_features
-        self.conv3d = nn.Conv3d(
-            in_features,
-            out_features,
-            kernel_size=(3, 3, 3),
-            stride=(1, 1, 1),
-            padding=padding,
-        )
-        self.bn3d = nn.BatchNorm3d(out_features)
-        if act_layer is None:
-            self.act = nn.Identity()
+        self.bn3d = nn.BatchNorm3d(num_features)
+        if apply_act:
+            self.act = act_layer(inplace=inplace_act)
         else:
-            self.act = act_layer(inplace=act_inplace)
+            self.act = nn.Identity()
 
-    def forward(self, frames):
-        x = self.conv3d(frames)
+    def forward(self, x):
         x = self.bn3d(x)
         x = self.act(x)
         return x
 
 
-class Conv3dResidual(nn.Module):
+class SqueezeExcite(nn.Module):
     def __init__(self,
-                 num_features: int,
-                 hidden_features: int,
-                 act_layer: Optional[Type] = nn.ReLU,
-                 drop_path_rate=0.,
-                 padding="same"):
+                 in_features,
+                 reduce_ratio=24,
+                 act_layer=nn.ReLU,
+                 gate_layer=nn.Sigmoid):
         super().__init__()
-        self.num_features = num_features
-        self.block1 = Conv3dNormAct(num_features, hidden_features,
-                                    act_layer=act_layer, padding=padding)
-        self.block2 = Conv3dNormAct(hidden_features, num_features,
-                                    act_layer=None, padding=padding)
+        rd_channels = in_features // reduce_ratio
+        self.conv_reduce = nn.Conv3d(in_features, rd_channels, (1, 1, 1), bias=True)
+        self.act1 = act_layer(inplace=True)
+        self.conv_expand = nn.Conv3d(rd_channels, in_features, (1, 1, 1), bias=True)
+        self.gate = gate_layer()
+
+    def forward(self, x):
+        x_se = x.mean((2, 3, 4), keepdim=True)
+        x_se = self.conv_reduce(x_se)
+        x_se = self.act1(x_se)
+        x_se = self.conv_expand(x_se)
+        return x * self.gate(x_se)
+
+
+class InvertedResidual3d(nn.Module):
+    def __init__(self,
+                 in_features: int,
+                 out_features: int,
+                 expansion_ratio: int = 6,
+                 act_layer=nn.ReLU,
+                 drop_path_rate: float = 0.,
+                 bias: bool = False):
+        super().__init__()
+
+        mid_chs = in_features * expansion_ratio
+        groups = mid_chs
+
+        # Point-wise expansion
+        self.conv_pw = nn.Conv3d(in_features, mid_chs, (1, 1, 1), bias=bias)
+        self.bn1 = BatchNormAct3d(mid_chs, act_layer=act_layer)
+
+        # Depth-wise convolution
+        self.conv_dw = nn.Conv3d(mid_chs, mid_chs,
+                                 kernel_size=(3, 3, 3), stride=(1, 1, 1),
+                                 dilation=(1, 1, 1), padding=(1, 1, 1),
+                                 groups=groups, bias=bias)
+        self.bn2 = BatchNormAct3d(mid_chs, act_layer=act_layer)
+
+        # Squeeze-and-excitation
+        self.se = SqueezeExcite(mid_chs, act_layer=act_layer)
+
+        # Point-wise linear projection
+        self.conv_pwl = nn.Conv3d(mid_chs, out_features, (1, 1, 1), bias=bias)
+        self.bn3 = BatchNormAct3d(out_features, apply_act=False)
         self.drop_path = DropPath(drop_path_rate) if drop_path_rate else nn.Identity()
 
-    def forward(self, frames):
-        shortcut = frames
-        x = self.block1(frames)
-        x = self.block2(x)
+    def forward(self, x):
+        shortcut = x
+        x = self.conv_pw(x)
+        x = self.bn1(x)
+        x = self.conv_dw(x)
+        x = self.bn2(x)
+        x = self.se(x)
+        x = self.conv_pwl(x)
+        x = self.bn3(x)
         x = self.drop_path(x) + shortcut
         return x
 
@@ -80,8 +109,7 @@ class MultiDimStacker(nn.Module):
                  num_frames: int = 15,
                  stack_size: int = 3,
                  index_2d_features: int = 4,
-                 num_3d_features: int = 512,
-                 num_3d_hidden: int = 256,
+                 num_3d_features: int = 192,
                  num_3d_stack_proj: int = 256,
                  pretrained: bool = False,
                  drop_rate: bool = 0.,
@@ -99,7 +127,6 @@ class MultiDimStacker(nn.Module):
 
         act_layer = get_act_layer(act_layer)
         norm_act_layer = get_norm_act_layer(nn.BatchNorm2d, act_layer)
-        pad_type = "same"
 
         self.conv2d_encoder = timm.create_model(
             model_name,
@@ -118,17 +145,15 @@ class MultiDimStacker(nn.Module):
                 self.conv2d_encoder.feature_info[index_2d_features]["num_chs"],
                 num_3d_features,
                 kernel_size=1, stride=1,
-                padding=pad_type
             ),
             norm_act_layer(num_3d_features, inplace=True)
         )
 
-        self.conv3d_encoder = Conv3dResidual(
+        self.conv3d_encoder = InvertedResidual3d(
             num_3d_features,
-            num_3d_hidden,
+            num_3d_features,
             act_layer=act_layer,
             drop_path_rate=drop_path_rate,
-            padding=pad_type,
         )
 
         self.conv3d_projection = nn.Sequential(
@@ -136,7 +161,6 @@ class MultiDimStacker(nn.Module):
                 num_3d_features,
                 num_3d_stack_proj,
                 kernel_size=1, stride=1,
-                padding=pad_type
             ),
             norm_act_layer(num_3d_stack_proj, inplace=True),
         )
