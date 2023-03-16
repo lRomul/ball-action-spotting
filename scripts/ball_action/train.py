@@ -39,7 +39,7 @@ def get_lr(base_lr, batch_size):
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 6e-4
+BASE_LR = 1e-3
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
@@ -58,7 +58,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 12],
+    num_epochs=[2, 24],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
