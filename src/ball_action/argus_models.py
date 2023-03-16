@@ -71,7 +71,7 @@ class BallActionModel(argus.Model):
             if self.model_ema is None:
                 prediction = self.nn_module(input)
             else:
-                prediction = self.model_ema.ema(input)
+                prediction = self.model_ema.module(input)
             loss = self.loss(prediction, target)
             prediction = self.prediction_transform(prediction)
             return {
@@ -88,6 +88,6 @@ class BallActionModel(argus.Model):
             if self.model_ema is None:
                 prediction = self.nn_module(input)
             else:
-                prediction = self.model_ema.ema(input)
+                prediction = self.model_ema.module(input)
             prediction = self.prediction_transform(prediction)
             return prediction

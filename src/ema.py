@@ -56,7 +56,7 @@ class ModelEma(torch.nn.Module):
 
 class EmaCheckpoint(Checkpoint):
     def save_model(self, state: State, file_path):
-        nn_module = state.model.model_ema.ema
+        nn_module = state.model.model_ema.module
         if isinstance(nn_module, (DataParallel, DistributedDataParallel)):
             nn_module = nn_module.module
 
