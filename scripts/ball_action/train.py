@@ -23,6 +23,8 @@ from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
+from src.mixup import TimmMixup
+
 from src.ball_action import constants
 
 
@@ -90,6 +92,13 @@ CONFIG = dict(
             "fill_value": 0,
         }),
     },
+    mixup_params={
+        "mixup_alpha": 1.,
+        "prob": 1.0,
+        "mode": "elem",
+        "label_smoothing": 0.1,
+        "num_classes": constants.num_classes,
+    },
 )
 
 
@@ -98,8 +107,8 @@ def train_ball_action(config: dict, save_dir: Path):
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
 
-    augmentations = get_train_augmentations(config["image_size"])
-    model.augmentations = augmentations
+    model.augmentations = get_train_augmentations(config["image_size"])
+    model.mixup = TimmMixup(**config["mixup_params"])
 
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]

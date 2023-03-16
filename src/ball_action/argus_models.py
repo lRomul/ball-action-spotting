@@ -8,6 +8,7 @@ import argus
 from argus.engine import State
 from argus.utils import deep_to, deep_detach, deep_chunk
 
+from src.mixup import TimmMixup
 from src.models.multidim_stacker import MultiDimStacker
 
 
@@ -25,6 +26,7 @@ class BallActionModel(argus.Model):
         self.scaler = torch.cuda.amp.GradScaler() if self.amp else None
         self.model_ema = None
         self.augmentations: Optional[nn.Module] = None
+        self.mixup: Optional[TimmMixup] = None
 
     def train_step(self, batch, state: State) -> dict:
         self.train()
@@ -33,9 +35,11 @@ class BallActionModel(argus.Model):
         # Gradient accumulation
         for i, chunk_batch in enumerate(deep_chunk(batch, self.iter_size)):
             input, target = deep_to(chunk_batch, self.device, non_blocking=True)
-            if self.augmentations is not None:
-                with torch.no_grad():
+            with torch.no_grad():
+                if self.augmentations is not None:
                     input = self.augmentations(input)
+                if self.mixup is not None:
+                    input, target = self.mixup(input, target)
             with torch.cuda.amp.autocast(enabled=self.amp):
                 prediction = self.nn_module(input)
                 loss = self.loss(prediction, target)
