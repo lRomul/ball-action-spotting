@@ -98,7 +98,7 @@ CONFIG = dict(
         "mixup_alpha": 1.,
         "prob": 0.75,
         "mode": "elem",
-        "label_smoothing": 0.,
+        "label_smoothing": 0.1,
         "num_classes": constants.num_classes,
     },
 )
