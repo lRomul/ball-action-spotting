@@ -58,7 +58,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 16],
+    num_epochs=[2, 14],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
@@ -94,7 +94,7 @@ CONFIG = dict(
     },
     mixup_params={
         "mixup_alpha": 1.,
-        "prob": 0.75,
+        "prob": 0.5,
         "mode": "elem",
         "label_smoothing": 0.1,
         "num_classes": constants.num_classes,
