@@ -1,12 +1,12 @@
 import abc
 import random
-from typing import Callable, Type
+from typing import Callable, Type, Optional
 
 import numpy as np
 
 import torch
 
-from src.ball_action.indexes import StackIndexesGenerator
+from src.ball_action.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
 from src.utils import set_random_seed
@@ -36,7 +36,7 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
         return self.num_actions
 
     @abc.abstractmethod
-    def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
+    def get_video_frame_indexes(self, index: int) -> tuple[int, list[int]]:
         pass
 
     def get_targets(self, video_index: int, frame_indexes: list[int]):
@@ -47,10 +47,9 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
     def get_frames_targets(
             self,
             video_index: int,
-            frame_index: int,
+            frame_indexes: list[int],
             frame_fetcher: AbstractFrameFetcher
     ) -> tuple[torch.Tensor, np.ndarray]:
-        frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
         frames = frame_fetcher.fetch_frames(frame_indexes)
         targets = self.get_targets(video_index, frame_indexes)
         return frames, targets
@@ -76,9 +75,9 @@ class ActionBallDataset(metaclass=abc.ABCMeta):
             index: int,
             frame_fetcher_class: Type[AbstractFrameFetcher] = NvDecFrameFetcher,
             gpu_id: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
-        video_index, frame_index = self.get_video_frame_indexes(index)
+        video_index, frame_indexes = self.get_video_frame_indexes(index)
         frame_fetcher = self.get_frame_fetcher(video_index, frame_fetcher_class, gpu_id)
-        frames, targets = self.get_frames_targets(video_index, frame_index, frame_fetcher)
+        frames, targets = self.get_frames_targets(video_index, frame_indexes, frame_fetcher)
         return self.process_frames_targets(frames, targets)
 
 
@@ -92,6 +91,7 @@ class TrainActionBallDataset(ActionBallDataset):
             action_random_shift: int,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
+            frame_index_shaker: Optional[FrameIndexShaker] = None,
     ):
         super().__init__(
             videos_data=videos_data,
@@ -102,11 +102,12 @@ class TrainActionBallDataset(ActionBallDataset):
         self.epoch_size = epoch_size
         self.action_prob = action_prob
         self.action_random_shift = action_random_shift
+        self.frame_index_shaker = frame_index_shaker
 
     def __len__(self) -> int:
         return self.epoch_size
 
-    def get_video_frame_indexes(self, index) -> tuple[int, int]:
+    def get_video_frame_indexes(self, index) -> tuple[int, list[int]]:
         set_random_seed(index)
         video_index = random.randrange(0, self.num_videos)
         video_target = self.videos_target[video_index]
@@ -122,12 +123,18 @@ class TrainActionBallDataset(ActionBallDataset):
                 self.indexes_generator.behind,
                 video_frame_count - self.indexes_generator.ahead
             )
-        frame_index = self.indexes_generator.clip_index(frame_index, video_frame_count, 1)
-        return video_index, frame_index
+        save_zone = 1
+        if self.frame_index_shaker is not None:
+            save_zone += max(abs(sh) for sh in self.frame_index_shaker.shifts)
+        frame_index = self.indexes_generator.clip_index(frame_index, video_frame_count, save_zone)
+        frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
+        if self.frame_index_shaker is not None:
+            frame_indexes = self.frame_index_shaker(frame_indexes)
+        return video_index, frame_indexes
 
 
 class ValActionBallDataset(ActionBallDataset):
-    def get_video_frame_indexes(self, index: int) -> tuple[int, int]:
+    def get_video_frame_indexes(self, index: int) -> tuple[int, list[int]]:
         assert 0 <= index < self.__len__()
         action_index = index
         video_index = 0
@@ -140,4 +147,5 @@ class ValActionBallDataset(ActionBallDataset):
         video_data = self.videos_data[video_index]
         frame_index = video_target.get_frame_index_by_action_index(action_index)
         frame_index = self.indexes_generator.clip_index(frame_index, video_data["frame_count"], 1)
-        return video_index, frame_index
+        frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
+        return video_index, frame_indexes
