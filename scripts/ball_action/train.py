@@ -5,6 +5,8 @@ from pathlib import Path
 
 import torch
 
+import argus
+from argus.engine import State
 from argus.callbacks import (
     Checkpoint,
     LoggingToFile,
@@ -58,8 +60,8 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 14],
-    stages=["warmup", "train"],
+    num_epochs=[2, 12, 2],
+    stages=["warmup", "train", "cooldown"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -94,7 +96,7 @@ CONFIG = dict(
     },
     mixup_params={
         "mixup_alpha": 1.,
-        "prob": 0.5,
+        "prob": 1.0,
         "mode": "elem",
         "label_smoothing": 0.1,
         "num_classes": constants.num_classes,
@@ -108,7 +110,6 @@ def train_ball_action(config: dict, save_dir: Path):
         model.params["nn_module"][1]["pretrained"] = False
 
     model.augmentations = get_train_augmentations(config["image_size"])
-    model.mixup = TimmMixup(**config["mixup_params"])
 
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]
@@ -165,22 +166,48 @@ def train_ball_action(config: dict, save_dir: Path):
             LoggingToCSV(save_dir / "log.csv", append=True),
         ]
 
-        num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
-        if stage == "train":
-            checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
+        num_iterations_per_epoch = len(train_dataset) // config["batch_size"]
+        num_iterations = num_iterations_per_epoch * num_epochs
+
+        if stage == "warmup":
+            model.mixup = TimmMixup(**config["mixup_params"])
+
             callbacks += [
-                checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
+                LambdaLR(lambda x: x / num_iterations,
+                         step_on_iteration=True),
+            ]
+        elif stage == "train":
+            model.mixup = TimmMixup(**config["mixup_params"])
+            start_mix_prob = config["mixup_params"]["prob"]
+
+            @argus.callbacks.on_iteration_start
+            def adjust_mixup_prob(state: State):
+                iteration = state.epoch * num_iterations_per_epoch + state.iteration
+                state.model.mixup.mix_prob = (
+                        start_mix_prob * (1 - iteration / num_iterations)
+                )
+
+            @argus.callbacks.on_epoch_complete
+            def log_mixup_prob(state: State):
+                state.logger.info(f"Mixup prob: {state.model.mixup.mix_prob}")
+
+            callbacks += [
+                adjust_mixup_prob,
+                log_mixup_prob,
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
                     step_on_iteration=True
                 ),
             ]
-        elif stage == "warmup":
+        elif stage == "cooldown":
+            model.mixup = None
+            checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
-                LambdaLR(lambda x: x / num_iterations,
-                         step_on_iteration=True),
+                checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
             ]
+        else:
+            raise RuntimeError(f"Stage '{stage}' is not supported")
 
         metrics = [
             AveragePrecision(),
