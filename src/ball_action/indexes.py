@@ -33,13 +33,20 @@ class StackIndexesGenerator:
 
 
 class FrameIndexShaker:
-    def __init__(self, shifts: list[int], weights: Optional[list[float]] = None):
+    def __init__(self,
+                 shifts: list[int],
+                 weights: Optional[list[float]] = None,
+                 prob: float = 1.0):
         self.shifts = shifts
         self.weights = weights
+        self.prob = prob
 
     def __call__(self, frame_indexes: list[int]) -> list[int]:
-        shifts = np.random.choice(self.shifts, len(frame_indexes), p=self.weights)
-        shaken_indexes = list()
-        for index, shift in zip(frame_indexes, shifts):
-            shaken_indexes.append(int(index + shift))
-        return shaken_indexes
+        if np.random.random() < self.prob:
+            shifts = np.random.choice(self.shifts, len(frame_indexes), p=self.weights)
+            shaken_indexes = list()
+            for index, shift in zip(frame_indexes, shifts):
+                shaken_indexes.append(int(index + shift))
+            return shaken_indexes
+        else:
+            return frame_indexes
