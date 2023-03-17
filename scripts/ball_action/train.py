@@ -92,8 +92,8 @@ CONFIG = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.1, 0.8, 0.1],
-        "prob": 0.8,
+        "weights": [0.2, 0.6, 0.2],
+        "prob": 0.6,
     },
 )
 
