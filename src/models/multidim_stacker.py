@@ -63,11 +63,14 @@ class InvertedResidual3d(nn.Module):
                  out_features: int,
                  expansion_ratio: int = 6,
                  se_reduce_ratio: int = 24,
+                 group_size: int = 1,
                  act_layer=nn.ReLU,
                  drop_path_rate: float = 0.,
                  bias: bool = False):
         super().__init__()
         mid_features = in_features * expansion_ratio
+        assert mid_features % group_size == 0
+        groups = mid_features // group_size
 
         # Point-wise expansion
         self.conv_pw = nn.Conv3d(in_features, mid_features, (1, 1, 1), bias=bias)
@@ -77,7 +80,7 @@ class InvertedResidual3d(nn.Module):
         self.conv_dw = nn.Conv3d(mid_features, mid_features,
                                  kernel_size=(3, 3, 3), stride=(1, 1, 1),
                                  dilation=(1, 1, 1), padding=(1, 1, 1),
-                                 groups=mid_features, bias=bias)
+                                 groups=groups, bias=bias)
         self.bn2 = BatchNormAct3d(mid_features, act_layer=act_layer)
 
         # Squeeze-and-excitation
@@ -114,6 +117,7 @@ class MultiDimStacker(nn.Module):
                  num_3d_stack_proj: int = 256,
                  expansion_3d_ratio: int = 6,
                  se_reduce_3d_ratio: int = 24,
+                 group_3d_size: int = 1,
                  drop_rate: bool = 0.,
                  drop_path_rate: float = 0.,
                  act_layer: str = "silu",
@@ -157,6 +161,7 @@ class MultiDimStacker(nn.Module):
                 num_3d_features,
                 expansion_ratio=expansion_3d_ratio,
                 se_reduce_ratio=se_reduce_3d_ratio,
+                group_size=group_3d_size,
                 act_layer=act_layer,
                 drop_path_rate=drop_path_rate,
             ) for _ in range(num_3d_blocks)

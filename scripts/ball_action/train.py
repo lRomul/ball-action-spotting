@@ -71,6 +71,7 @@ CONFIG = dict(
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
+            "group_3d_size": 1,
             "num_3d_stack_proj": 256,
             "drop_rate": 0.2,
             "drop_path_rate": 0.,
