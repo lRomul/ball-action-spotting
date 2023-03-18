@@ -72,7 +72,7 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.2,
+            "drop_rate": 0.,
             "drop_path_rate": 0.,
             "act_layer": "silu",
         }),
@@ -91,9 +91,9 @@ CONFIG = dict(
         }),
     },
     frame_index_shaker={
-        "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
-        "prob": 0.25,
+        "shifts": [-2, -1, 0, 1, 2],
+        "weights": [0.1, 0.2, 0.4, 0.2, 0.1],
+        "prob": 0.5,
     },
 )
 
