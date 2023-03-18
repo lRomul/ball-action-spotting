@@ -5,16 +5,61 @@ Original idea:
 https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932
 """
 
+import torch
 from torch import nn
 
 import timm
 from timm.models.layers import (
     DropPath,
     create_conv2d,
-    create_classifier,
     get_act_layer,
     get_norm_act_layer,
 )
+
+
+class AttentionPool2d(nn.Module):
+    """ Implementations of 2D spatial feature pooling using multi-head attention.
+    https://github.com/openai/CLIP/blob/main/clip/model.py
+    """
+    def __init__(self,
+                 spacial_size: tuple[int, int],
+                 embed_dim: int,
+                 num_heads: int,
+                 output_dim: int = None):
+        super().__init__()
+        self.positional_embedding = nn.Parameter(
+            torch.randn(spacial_size[0] * spacial_size[1] + 1, embed_dim) / embed_dim ** 0.5
+        )
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+        self.c_proj = nn.Linear(embed_dim, output_dim or embed_dim)
+        self.num_heads = num_heads
+
+    def forward(self, x):
+        x = x.flatten(start_dim=2).permute(2, 0, 1)  # NCHW -> (HW)NC
+        x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
+        x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
+        x, _ = nn.functional.multi_head_attention_forward(
+            query=x[:1], key=x, value=x,
+            embed_dim_to_check=x.shape[-1],
+            num_heads=self.num_heads,
+            q_proj_weight=self.q_proj.weight,
+            k_proj_weight=self.k_proj.weight,
+            v_proj_weight=self.v_proj.weight,
+            in_proj_weight=None,
+            in_proj_bias=torch.cat([self.q_proj.bias, self.k_proj.bias, self.v_proj.bias]),
+            bias_k=None,
+            bias_v=None,
+            add_zero_attn=False,
+            dropout_p=0,
+            out_proj_weight=self.c_proj.weight,
+            out_proj_bias=self.c_proj.bias,
+            use_separate_proj_weight=True,
+            training=self.training,
+            need_weights=False
+        )
+        return x.squeeze(0)
 
 
 class BatchNormAct3d(nn.Module):
@@ -105,21 +150,24 @@ class MultiDimStacker(nn.Module):
     def __init__(self,
                  model_name: str,
                  num_classes: int,
+                 input_resolution: tuple[int, int],
                  num_frames: int = 15,
                  stack_size: int = 3,
                  index_2d_features: int = 4,
                  pretrained: bool = False,
                  num_3d_blocks: int = 2,
                  num_3d_features: int = 192,
-                 num_3d_stack_proj: int = 256,
                  expansion_3d_ratio: int = 6,
                  se_reduce_3d_ratio: int = 24,
+                 num_3d_stack_proj: int = 256,
+                 num_attention_heads: int = 4,
                  drop_rate: bool = 0.,
                  drop_path_rate: float = 0.,
                  act_layer: str = "silu",
                  **kwargs):
         super().__init__()
         assert num_frames > 0 and num_frames % 3 == 0
+        self.input_width, self.input_height = input_resolution
         self.num_frames = num_frames
         self.stack_size = stack_size
         self.num_3d_features = num_3d_features
@@ -171,13 +219,23 @@ class MultiDimStacker(nn.Module):
             norm_act_layer(num_3d_stack_proj, inplace=True),
         )
 
-        self.global_pool, self.classifier = create_classifier(
-            self.num_features, num_classes, pool_type="avg"
+        reduction = self.conv2d_encoder.feature_info[index_2d_features]["reduction"]
+        assert self.input_height % reduction == 0
+        assert self.input_width % reduction == 0
+        self.attention = AttentionPool2d(
+            (self.input_height // reduction, self.input_width // reduction),
+            self.num_features,
+            num_attention_heads,
+            output_dim=self.num_features,
         )
+        self.classifier = nn.Linear(self.num_features, num_classes, bias=True)
 
     def forward_2d(self, frames):
         b, t, h, w = frames.shape  # (2, 15, 736, 1280)
+        assert h == self.input_height
+        assert w == self.input_width
         assert t % self.stack_size == 0
+
         num_stacks = t // self.stack_size
         stacked_frames = frames.view(
             b * num_stacks, self.stack_size, h, w
@@ -204,7 +262,7 @@ class MultiDimStacker(nn.Module):
         return conv3d_features
 
     def forward_head(self, x):
-        x = self.global_pool(x)
+        x = self.attention(x)
         if self.drop_rate > 0.:
             x = nn.functional.dropout(x, p=self.drop_rate, training=self.training)
         x = self.classifier(x)

@@ -63,6 +63,7 @@ CONFIG = dict(
         "nn_module": ("multidim_stacker", {
             "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
+            "input_resolution": IMAGE_SIZE,
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
             "index_2d_features": 4,
@@ -72,6 +73,7 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
+            "num_attention_heads": 4,
             "drop_rate": 0.,
             "drop_path_rate": 0.,
             "act_layer": "silu",
@@ -79,7 +81,6 @@ CONFIG = dict(
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
-        "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
