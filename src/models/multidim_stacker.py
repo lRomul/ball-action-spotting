@@ -143,7 +143,6 @@ class MultiDimStacker(nn.Module):
                  index_2d_features: int = 4,
                  pretrained: bool = False,
                  num_3d_blocks: int = 2,
-                 num_3d_features: int = 192,
                  num_3d_stack_proj: int = 256,
                  expansion_3d_ratio: int = 6,
                  se_reduce_3d_ratio: int = 24,
@@ -155,7 +154,6 @@ class MultiDimStacker(nn.Module):
         assert num_frames > 0 and num_frames % 3 == 0
         self.num_frames = num_frames
         self.stack_size = stack_size
-        self.num_3d_features = num_3d_features
         self.num_stacks = num_frames // stack_size
         self.num_features = num_3d_stack_proj * self.num_stacks
         self.drop_rate = drop_rate
@@ -174,20 +172,12 @@ class MultiDimStacker(nn.Module):
             out_indices=[index_2d_features],
             **kwargs
         )
-
-        self.conv2d_projection = nn.Sequential(
-            create_conv2d(
-                self.conv2d_encoder.feature_info[index_2d_features]["num_chs"],
-                num_3d_features,
-                kernel_size=1, stride=1,
-            ),
-            norm_act_layer(num_3d_features, inplace=True)
-        )
+        self.num_3d_features = self.conv2d_encoder.feature_info[index_2d_features]["num_chs"]
 
         self.conv3d_encoder = nn.Sequential(*[
             InvertedResidual3d(
-                num_3d_features,
-                num_3d_features,
+                self.num_3d_features,
+                self.num_3d_features,
                 expansion_ratio=expansion_3d_ratio,
                 se_reduce_ratio=se_reduce_3d_ratio,
                 act_layer=act_layer,
@@ -197,7 +187,7 @@ class MultiDimStacker(nn.Module):
 
         self.conv3d_projection = nn.Sequential(
             create_conv2d(
-                num_3d_features,
+                self.num_3d_features,
                 num_3d_stack_proj,
                 kernel_size=1, stride=1,
             ),
@@ -216,19 +206,18 @@ class MultiDimStacker(nn.Module):
         )  # (10, 3, 736, 1280)
         conv2d_features = self.conv2d_encoder(
             stacked_frames
-        )[-1]  # (10, 1280, 23, 40)
-        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 512, 23, 40)
+        )[-1]  # (10, 192, 23, 40)
         _, _, h, w = conv2d_features.shape
         conv2d_features = conv2d_features.contiguous().view(
             b, self.num_3d_features, num_stacks, h, w
-        )  # (2, 512, 5, 23, 40)
+        )  # (2, 192, 5, 23, 40)
         return conv2d_features
 
     def forward_3d(self, conv2d_features):
-        b, c, t, h, w = conv2d_features.shape  # (2, 512, 5, 23, 40)
+        b, c, t, h, w = conv2d_features.shape  # (2, 192, 5, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
-        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 512, 5, 23, 40)
-        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 512, 23, 40)
+        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 192, 5, 23, 40)
+        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 192, 23, 40)
         conv3d_features = self.conv3d_projection(conv3d_features)  # (10, 256, 23, 40)
         conv3d_features = conv3d_features.view(
             b, self.num_features, h, w
