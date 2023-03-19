@@ -72,7 +72,7 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.5,
+            "drop_rate": 0.2,
             "drop_path_rate": 0.1,
             "act_layer": "silu",
         }),
