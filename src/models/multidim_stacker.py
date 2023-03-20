@@ -17,6 +17,52 @@ from timm.models.layers import (
 )
 
 
+class MultiHeadAttention2d(nn.Module):
+    """ Implementations of 2D spatial multi-head attention.
+    https://github.com/openai/CLIP/blob/main/clip/model.py
+    """
+    def __init__(self,
+                 spacial_size: tuple[int, int],
+                 embed_dim: int,
+                 num_heads: int,
+                 output_dim: int = None):
+        super().__init__()
+        self.num_heads = num_heads
+        self.positional_embedding = nn.Parameter(
+            torch.randn(spacial_size[0] * spacial_size[1], embed_dim) / embed_dim ** 0.5
+        )
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+        self.c_proj = nn.Linear(embed_dim, output_dim or embed_dim)
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+        x = x.view(b, c, h * w).permute(2, 0, 1)  # b, c, h, w -> (h * w), b, c
+        x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (h * w), b, c
+        x, _ = nn.functional.multi_head_attention_forward(
+            query=x, key=x, value=x,
+            embed_dim_to_check=x.shape[-1],
+            num_heads=self.num_heads,
+            q_proj_weight=self.q_proj.weight,
+            k_proj_weight=self.k_proj.weight,
+            v_proj_weight=self.v_proj.weight,
+            in_proj_weight=None,
+            in_proj_bias=torch.cat([self.q_proj.bias, self.k_proj.bias, self.v_proj.bias]),
+            bias_k=None,
+            bias_v=None,
+            add_zero_attn=False,
+            dropout_p=0,
+            out_proj_weight=self.c_proj.weight,
+            out_proj_bias=self.c_proj.bias,
+            use_separate_proj_weight=True,
+            training=self.training,
+            need_weights=False
+        )
+        x = x.permute(1, 2, 0).view(b, c, h, w)  # (h * w), b, c -> b, c, h, w
+        return x
+
+
 class GeneralizedMeanPooling(nn.Module):
     """Applies a 2D power-average adaptive pooling over an input signal composed of several input planes.
     The function computed is: :math:`f(X) = pow(sum(pow(X, p)), 1/p)`
@@ -138,6 +184,7 @@ class MultiDimStacker(nn.Module):
     def __init__(self,
                  model_name: str,
                  num_classes: int,
+                 input_resolution: tuple[int, int],
                  num_frames: int = 15,
                  stack_size: int = 3,
                  index_2d_features: int = 4,
@@ -145,6 +192,7 @@ class MultiDimStacker(nn.Module):
                  num_3d_blocks: int = 2,
                  num_3d_features: int = 192,
                  num_3d_stack_proj: int = 256,
+                 num_attention_heads: int = 4,
                  expansion_3d_ratio: int = 6,
                  se_reduce_3d_ratio: int = 24,
                  drop_rate: bool = 0.,
@@ -153,6 +201,7 @@ class MultiDimStacker(nn.Module):
                  **kwargs):
         super().__init__()
         assert num_frames > 0 and num_frames % 3 == 0
+        self.input_width, self.input_height = input_resolution
         self.num_frames = num_frames
         self.stack_size = stack_size
         self.num_3d_features = num_3d_features
@@ -182,6 +231,16 @@ class MultiDimStacker(nn.Module):
                 kernel_size=1, stride=1,
             ),
             norm_act_layer(num_3d_features, inplace=True)
+        )
+
+        reduction = self.conv2d_encoder.feature_info[index_2d_features]["reduction"]
+        assert self.input_height % reduction == 0
+        assert self.input_width % reduction == 0
+        self.attention2d = MultiHeadAttention2d(
+            (self.input_height // reduction, self.input_width // reduction),
+            num_3d_features,
+            num_attention_heads,
+            output_dim=num_3d_features,
         )
 
         self.conv3d_encoder = nn.Sequential(*[
@@ -217,18 +276,19 @@ class MultiDimStacker(nn.Module):
         conv2d_features = self.conv2d_encoder(
             stacked_frames
         )[-1]  # (10, 1280, 23, 40)
-        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 512, 23, 40)
+        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 192, 23, 40)
+        conv2d_features = self.attention2d(conv2d_features)  # (10, 192, 23, 40)
         _, _, h, w = conv2d_features.shape
         conv2d_features = conv2d_features.contiguous().view(
             b, self.num_3d_features, num_stacks, h, w
-        )  # (2, 512, 5, 23, 40)
+        )  # (2, 192, 5, 23, 40)
         return conv2d_features
 
     def forward_3d(self, conv2d_features):
-        b, c, t, h, w = conv2d_features.shape  # (2, 512, 5, 23, 40)
+        b, c, t, h, w = conv2d_features.shape  # (2, 192, 5, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
-        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 512, 5, 23, 40)
-        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 512, 23, 40)
+        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 192, 5, 23, 40)
+        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 192, 23, 40)
         conv3d_features = self.conv3d_projection(conv3d_features)  # (10, 256, 23, 40)
         conv3d_features = conv3d_features.view(
             b, self.num_features, h, w
