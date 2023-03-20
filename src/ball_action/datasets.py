@@ -10,6 +10,7 @@ from src.ball_action.indexes import StackIndexesGenerator
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
 from src.utils import set_random_seed
+from src.ball_action import constants
 
 
 class ActionBallDataset(metaclass=abc.ABCMeta):
@@ -89,6 +90,7 @@ class TrainActionBallDataset(ActionBallDataset):
             indexes_generator: StackIndexesGenerator,
             epoch_size: int,
             action_prob: float,
+            action_weights: list[float],
             action_random_shift: int,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
@@ -101,6 +103,7 @@ class TrainActionBallDataset(ActionBallDataset):
         )
         self.epoch_size = epoch_size
         self.action_prob = action_prob
+        self.action_weights = action_weights
         self.action_random_shift = action_random_shift
 
     def __len__(self) -> int:
@@ -113,8 +116,9 @@ class TrainActionBallDataset(ActionBallDataset):
         video_data = self.videos_data[video_index]
         video_frame_count = video_data["frame_count"]
         if random.random() < self.action_prob:
-            action_index = random.randrange(0, video_target.num_actions())
-            frame_index = video_target.get_frame_index_by_action_index(action_index)
+            action = np.random.choice(constants.classes, p=self.action_weights)
+            action_index = random.randrange(0, video_target.num_actions(action))
+            frame_index = video_target.get_frame_index_by_action_index(action_index, action)
             if self.action_random_shift:
                 frame_index += random.randint(-self.action_random_shift, self.action_random_shift)
         else:
