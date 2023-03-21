@@ -56,7 +56,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 12],
+    num_epochs=[3, 15],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
@@ -93,7 +93,7 @@ CONFIG = dict(
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
-        "prob": 0.5,
+        "prob": 0.25,
     },
 )
 
