@@ -56,8 +56,7 @@ class SequentialWorkerStream(ProcessStream):
                 break
 
     def get_sample(self, index):
-        video_index, frame_index = self._dataset.get_video_frame_indexes(index)
-        frame_indexes = self._dataset.indexes_generator.make_stack_indexes(frame_index)
+        video_index, frame_indexes = self._dataset.get_video_frame_indexes(index)
 
         last_frame_index = max(frame_indexes)
         if video_index != self._video_index:

@@ -15,10 +15,10 @@ from argus.callbacks import (
 
 from src.ball_action.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
+from src.ball_action.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.ball_action.augmentations import get_train_augmentations
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
-from src.ball_action.indexes import StackIndexesGenerator
 from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaCheckpoint
@@ -90,6 +90,11 @@ CONFIG = dict(
             "fill_value": 0,
         }),
     },
+    frame_index_shaker={
+        "shifts": [-1, 0, 1],
+        "weights": [0.2, 0.6, 0.2],
+        "prob": 0.5,
+    },
 )
 
 
@@ -109,6 +114,7 @@ def train_ball_action(config: dict, save_dir: Path):
         config["frame_stack_size"],
         config["frame_stack_step"],
     )
+    frame_index_shaker = FrameIndexShaker(**config["frame_index_shaker"])
 
     if config["use_ema"]:
         ema_decay = config["ema_decay"]
@@ -128,6 +134,7 @@ def train_ball_action(config: dict, save_dir: Path):
         action_random_shift=config["train_action_random_shift"],
         target_process_fn=targets_processor,
         frames_process_fn=frames_processor,
+        frame_index_shaker=frame_index_shaker,
     )
     print(f"Train dataset len {len(train_dataset)}")
     val_data = get_videos_data(constants.val_games, add_empty_actions=True)
