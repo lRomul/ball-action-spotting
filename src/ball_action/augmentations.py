@@ -83,8 +83,9 @@ def get_train_augmentations(size: tuple[int, int]) -> nn.Module:
     size = size[::-1]
     ratio = size[0] / size[1]
     transforms = nn.Sequential(
-        RandomCameraMove((-3, 3), (0.1, 0.05), (0.95, 1.05), p=0.75),
-        augm.RandomResizedCrop(size, scale=(0.95, 1.0), ratio=(ratio - 0.05, ratio + 0.05), p=0.25),
+        RandomCameraMove((-2.5, 2.5), (0.1, 0.05), (0.95, 1.05), p=0.2),
+        augm.RandomAffine(degrees=(-5, 5), p=0.3),
+        augm.RandomResizedCrop(size, scale=(0.9, 1.0), ratio=(ratio - 0.1, ratio + 0.1), p=0.8),
         augm.RandomHorizontalFlip(p=0.5),
         augm.RandomBrightness(brightness=(0.8, 1.2), p=0.5),
         augm.RandomContrast(contrast=(0.8, 1.2), p=0.5),
