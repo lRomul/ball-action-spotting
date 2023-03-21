@@ -56,12 +56,12 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[3, 15],
+    num_epochs=[3, 13],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b1",
+            "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
