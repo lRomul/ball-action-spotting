@@ -46,7 +46,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.999,
+    ema_decay=0.9992,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
@@ -93,7 +93,7 @@ CONFIG = dict(
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
-        "prob": 0.4,
+        "prob": 0.2,
     },
 )
 
