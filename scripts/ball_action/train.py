@@ -50,7 +50,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.999,
+    ema_decay=0.9995,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
@@ -60,7 +60,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[6, 30],
+    num_epochs=[12, 60],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
@@ -106,6 +106,7 @@ CONFIG = dict(
         "label_smoothing": 0.1,
         "num_classes": constants.num_classes,
     },
+    train_mixup_epochs=54,
 )
 
 
@@ -177,8 +178,17 @@ def train_ball_action(config: dict, save_dir: Path):
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
             model.mixup = TimmMixup(**config["mixup_params"])
+            train_mixup_epochs = config["train_mixup_epochs"]
+
+            @argus.callbacks.on_epoch_start
+            def switch_off_mixup(state: State):
+                if state.epoch == train_mixup_epochs:
+                    state.model.mixup = None
+                    state.logger.info("Switch off mixup")
+
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
+                switch_off_mixup,
                 checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
