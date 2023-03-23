@@ -5,6 +5,8 @@ from pathlib import Path
 
 import torch
 
+import argus
+from argus.engine import State
 from argus.callbacks import (
     Checkpoint,
     LoggingToFile,
@@ -23,6 +25,8 @@ from src.ball_action.argus_models import BallActionModel
 from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
+from src.mixup import TimmMixup
+
 from src.ball_action import constants
 
 
@@ -95,6 +99,13 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
+    mixup_params={
+        "mixup_alpha": 1.,
+        "prob": 0.75,
+        "mode": "elem",
+        "label_smoothing": 0.1,
+        "num_classes": constants.num_classes,
+    },
 )
 
 
@@ -165,6 +176,7 @@ def train_ball_action(config: dict, save_dir: Path):
 
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
         if stage == "train":
+            model.mixup = TimmMixup(**config["mixup_params"])
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
                 checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
@@ -175,6 +187,7 @@ def train_ball_action(config: dict, save_dir: Path):
                 ),
             ]
         elif stage == "warmup":
+            model.mixup = TimmMixup(**config["mixup_params"])
             callbacks += [
                 LambdaLR(lambda x: x / num_iterations,
                          step_on_iteration=True),

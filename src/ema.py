@@ -1,7 +1,9 @@
+""" Exponential Moving Average (EMA) of model updates
+Hacked together by / Copyright 2020 Ross Wightman
+"""
+
 import torch
-import logging
 from copy import deepcopy
-from collections import OrderedDict
 from torch.nn.parallel.data_parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
@@ -10,9 +12,11 @@ from argus.engine import State
 from argus.callbacks import Checkpoint
 
 
-class ModelEma:
-    """ Model Exponential Moving Average
+class ModelEma(torch.nn.Module):
+    """ Model Exponential Moving Average V2
     Keep a moving average of everything in the model state_dict (parameters and buffers).
+    V2 of this module is simpler, it does not match params/buffers based on name but simply
+    iterates in order. It works with torchscript (JIT of full model).
     This is intended to allow functionality like
     https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
     A smoothed version of the weights is necessary for some training schemes to perform well.
@@ -25,59 +29,34 @@ class ModelEma:
     process, or after the training stops converging.
     This class is sensitive where it is initialized in the sequence of model init,
     GPU assignment and distributed training wrappers.
-    I've tested with the sequence in my own train_cls.py for torch.DataParallel, apex.DDP,
-    and single-GPU.
     """
-    def __init__(self, model, decay=0.9999, device='', resume=''):
+    def __init__(self, model, decay=0.9999, device=None):
+        super().__init__()
         # make a copy of the model for accumulating moving average of weights
-        self.ema = deepcopy(model)
-        self.ema.eval()
+        self.module = deepcopy(model)
+        self.module.eval()
         self.decay = decay
         self.device = device  # perform ema on different device from model if set
-        if device:
-            self.ema.to(device=device)
-        self.ema_has_module = hasattr(self.ema, 'module')
-        if resume:
-            self._load_checkpoint(resume)
-        for p in self.ema.parameters():
-            p.requires_grad_(False)
+        if self.device is not None:
+            self.module.to(device=device)
 
-    def _load_checkpoint(self, checkpoint_path):
-        checkpoint = torch.load(checkpoint_path, map_location='cpu')
-        assert isinstance(checkpoint, dict)
-        if 'state_dict_ema' in checkpoint:
-            new_state_dict = OrderedDict()
-            for k, v in checkpoint['state_dict_ema'].items():
-                # ema model may have been wrapped by DataParallel, and need module prefix
-                if self.ema_has_module:
-                    name = 'module.' + k if not k.startswith('module') else k
-                else:
-                    name = k
-                new_state_dict[name] = v
-            self.ema.load_state_dict(new_state_dict)
-            logging.info("Loaded state_dict_ema")
-        else:
-            logging.warning("Failed to find state_dict_ema, starting from loaded model weights")
-
-    @torch.no_grad()
-    def update(self, model):
-        torch.cuda.synchronize()
-        # correct a mismatch in state dict keys
-        needs_module = hasattr(model, 'module') and not self.ema_has_module
+    def _update(self, model, update_fn):
         with torch.no_grad():
-            msd = model.state_dict()
-            for k, ema_v in self.ema.state_dict().items():
-                if needs_module:
-                    k = 'module.' + k
-                model_v = msd[k].detach()
-                if self.device:
+            for ema_v, model_v in zip(self.module.state_dict().values(), model.state_dict().values()):
+                if self.device is not None:
                     model_v = model_v.to(device=self.device)
-                ema_v.copy_(ema_v * self.decay + (1. - self.decay) * model_v)
+                ema_v.copy_(update_fn(ema_v, model_v))
+
+    def update(self, model):
+        self._update(model, update_fn=lambda e, m: self.decay * e + (1. - self.decay) * m)
+
+    def set(self, model):
+        self._update(model, update_fn=lambda e, m: m)
 
 
 class EmaCheckpoint(Checkpoint):
     def save_model(self, state: State, file_path):
-        nn_module = state.model.model_ema.ema
+        nn_module = state.model.model_ema.module
         if isinstance(nn_module, (DataParallel, DistributedDataParallel)):
             nn_module = nn_module.module
 
