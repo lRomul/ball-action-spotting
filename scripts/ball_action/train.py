@@ -36,12 +36,12 @@ args = parser.parse_args()
 
 
 def get_lr(base_lr, batch_size):
-    return base_lr * (batch_size / 8)
+    return base_lr * (batch_size / 4)
 
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 6e-4
+BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
@@ -101,9 +101,9 @@ CONFIG = dict(
     },
     mixup_params={
         "mixup_alpha": 1.,
-        "prob": 0.75,
+        "prob": 1.,
         "mode": "elem",
-        "label_smoothing": 0.1,
+        "label_smoothing": 0.,
         "num_classes": constants.num_classes,
     },
     train_mixup_epochs=54,
