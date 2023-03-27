@@ -32,12 +32,12 @@ args = parser.parse_args()
 
 
 def get_lr(base_lr, batch_size):
-    return base_lr * (batch_size / 8)
+    return base_lr * (batch_size / 4)
 
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 6e-4
+BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
@@ -77,7 +77,10 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": "BCEWithLogitsLoss",
-        "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
+        "optimizer": ("AdamW", {
+            "lr": get_lr(BASE_LR, BATCH_SIZE),
+            "weight_decay": 0.05,
+        }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
