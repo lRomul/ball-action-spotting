@@ -60,8 +60,9 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[6, 60],
+    num_epochs=[4, 40],
     stages=["warmup", "train"],
+    train_mixup_epochs=36,
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -106,7 +107,6 @@ CONFIG = dict(
         "label_smoothing": 0.,
         "num_classes": constants.num_classes,
     },
-    train_mixup_epochs=54,
 )
 
 
