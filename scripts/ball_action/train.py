@@ -79,7 +79,7 @@ CONFIG = dict(
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {
             "lr": get_lr(BASE_LR, BATCH_SIZE),
-            "weight_decay": 0.01,
+            "weight_decay": 0.03,
         }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
