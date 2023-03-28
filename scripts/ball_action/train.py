@@ -31,13 +31,13 @@ parser.add_argument("--experiment", required=True, type=str)
 args = parser.parse_args()
 
 
-def get_lr(base_lr, batch_size):
-    return base_lr * (batch_size / 8)
+def get_lr(base_lr, batch_size, base_batch_size=4):
+    return base_lr * (batch_size / base_batch_size)
 
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 6e-4
+BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
