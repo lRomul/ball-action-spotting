@@ -39,7 +39,7 @@ IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
-FRAME_STACK_STEP = 2
+FRAME_STACK_STEP = 1
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
@@ -72,7 +72,7 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.4,
+            "drop_rate": 0.3,
             "drop_path_rate": 0.2,
             "act_layer": "silu",
         }),
