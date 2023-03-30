@@ -56,7 +56,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[6, 30],
     stages=["warmup", "train"],
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
@@ -72,7 +72,7 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.3,
+            "drop_rate": 0.2,
             "drop_path_rate": 0.2,
             "act_layer": "silu",
         }),
