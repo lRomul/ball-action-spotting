@@ -77,7 +77,10 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": "BCEWithLogitsLoss",
-        "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
+        "optimizer": ("AdamW", {
+            "lr": get_lr(BASE_LR, BATCH_SIZE),
+            "weight_decay": 0.001,
+        }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
