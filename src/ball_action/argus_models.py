@@ -1,12 +1,18 @@
+import copy
 from typing import Optional
 
 import torch
 from torch import nn
 
 import timm
+
 import argus
 from argus.engine import State
 from argus.utils import deep_to, deep_detach, deep_chunk
+from argus.model.build import (
+    choose_attribute_from_dict,
+    cast_optimizer,
+)
 
 from src.models.multidim_stacker import MultiDimStacker
 
@@ -91,3 +97,36 @@ class BallActionModel(argus.Model):
                 prediction = self.model_ema.ema(input)
             prediction = self.prediction_transform(prediction)
             return prediction
+
+    def build_optimizer(self, optimizer_meta, optim_params):
+        optimizer, optim_params = choose_attribute_from_dict(optimizer_meta,
+                                                             optim_params)
+        optimizer = cast_optimizer(optimizer)
+
+        optim_params = copy.deepcopy(optim_params)
+        weight_decay = optim_params.pop("weight_decay")
+        decay_params, no_decay_params = get_weight_decay_params(self.nn_module)
+        grad_params = [
+            {"params": decay_params, "weight_decay": weight_decay},
+            {"params": no_decay_params, "weight_decay": 0.0}
+        ]
+
+        optimizer = optimizer(params=grad_params, **optim_params)
+        return optimizer
+
+
+@torch.no_grad()
+def get_weight_decay_params(model: nn.Module):
+    """ No bias decay
+    https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348/9
+    """
+    decay = list()
+    no_decay = list()
+    for name, param in model.named_parameters():
+        if hasattr(param, 'requires_grad') and not param.requires_grad:
+            continue
+        if 'weight' in name and 'norm' not in name and 'bn' not in name:
+            decay.append(param)
+        else:
+            no_decay.append(param)
+    return decay, no_decay
