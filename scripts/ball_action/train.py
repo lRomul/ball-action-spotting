@@ -73,7 +73,7 @@ CONFIG = dict(
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
             "drop_rate": 0.3,
-            "drop_path_rate": 0.2,
+            "drop_path_rate": 0.15,
             "act_layer": "silu",
         }),
         "loss": "BCEWithLogitsLoss",
