@@ -61,7 +61,7 @@ CONFIG = dict(
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b0",
+            "model_name": "tf_mobilenetv3_small_minimal_100",
             "num_classes": constants.num_classes,
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
