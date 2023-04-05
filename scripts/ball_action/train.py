@@ -61,7 +61,7 @@ CONFIG = dict(
     experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b0",
+            "model_name": "efficientnet_lite0",
             "num_classes": constants.num_classes,
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
@@ -72,9 +72,9 @@ CONFIG = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.3,
+            "drop_rate": 0.2,
             "drop_path_rate": 0.2,
-            "act_layer": "silu",
+            "act_layer": "relu6",
         }),
         "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
