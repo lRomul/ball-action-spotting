@@ -230,7 +230,7 @@ class MultiDimStacker(nn.Module):
         conv2d_features = conv2d_features.transpose(1, 2)  # (2, 192, 5, 23, 40)
         conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 192, 5, 23, 40)
         conv3d_features = conv3d_features.transpose(1, 2)  # (2, 5, 192, 23, 40)
-        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 192, 23, 40)
+        conv3d_features = conv3d_features.reshape(b * t, c, h, w)  # (10, 192, 23, 40)
         conv3d_features = self.conv3d_projection(conv3d_features)  # (10, 256, 23, 40)
         conv3d_features = conv3d_features.view(
             b, self.num_features, h, w
