@@ -216,19 +216,21 @@ class MultiDimStacker(nn.Module):
         )  # (10, 3, 736, 1280)
         conv2d_features = self.conv2d_encoder(
             stacked_frames
-        )[-1]  # (10, 1280, 23, 40)
-        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 512, 23, 40)
+        )[-1]  # (10, 192, 23, 40)
+        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 192, 23, 40)
         _, _, h, w = conv2d_features.shape
         conv2d_features = conv2d_features.contiguous().view(
-            b, self.num_3d_features, num_stacks, h, w
-        )  # (2, 512, 5, 23, 40)
+            b, num_stacks, self.num_3d_features, h, w
+        )  # (2, 5, 192, 23, 40)
         return conv2d_features
 
-    def forward_3d(self, conv2d_features):
-        b, c, t, h, w = conv2d_features.shape  # (2, 512, 5, 23, 40)
+    def forward_3d(self, conv2d_features: torch.Tensor):
+        b, t, c, h, w = conv2d_features.shape  # (2, 5, 192, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
-        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 512, 5, 23, 40)
-        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 512, 23, 40)
+        conv2d_features = conv2d_features.transpose(1, 2)  # (2, 192, 5, 23, 40)
+        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 192, 5, 23, 40)
+        conv3d_features = conv3d_features.transpose(1, 2)  # (2, 5, 192, 23, 40)
+        conv3d_features = conv3d_features.view(b * t, c, h, w)  # (10, 192, 23, 40)
         conv3d_features = self.conv3d_projection(conv3d_features)  # (10, 256, 23, 40)
         conv3d_features = conv3d_features.view(
             b, self.num_features, h, w
