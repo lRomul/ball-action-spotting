@@ -21,6 +21,7 @@ POSTPROCESS_PARAMS = {
     "height": 0.2,
     "distance": 15,
 }
+TTA = True
 
 
 def parse_arguments():
@@ -166,7 +167,7 @@ def predict_games(experiment: str, split: str, gpu_id: int, use_saved_prediction
     experiment_dir = constants.experiments_dir / experiment
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
-    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}")
+    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
     prediction_dir = constants.predictions_dir / experiment / split
     if not prediction_dir.exists():
         prediction_dir.mkdir(parents=True, exist_ok=True)

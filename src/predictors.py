@@ -3,6 +3,7 @@ from itertools import islice
 from typing import Optional, Iterable
 
 import torch
+from kornia.geometry.transform import hflip
 
 import argus
 
@@ -17,10 +18,11 @@ def batched(iterable: Iterable, size: int):
 
 
 class MultiDimStackerPredictor:
-    def __init__(self, model_path: Path, device: str = "cuda:0"):
+    def __init__(self, model_path: Path, device: str = "cuda:0", tta: bool = False):
         self.model = argus.load_model(model_path, device=device, optimizer=None, loss=None)
         self.model.eval()
         self.device = self.model.device
+        self.tta = tta
         assert self.model.params["nn_module"][0] == "multidim_stacker"
         self.frames_processor = get_frames_processor(*self.model.params["frames_processor"])
         self.frame_stack_size = self.model.params["frame_stack_size"]
@@ -57,12 +59,17 @@ class MultiDimStackerPredictor:
             for stack_indexes in stacks_indexes:
                 if stack_indexes not in self._stack_indexes2features:
                     frames = torch.stack([self._frame_index2frame[i] for i in stack_indexes], dim=0)
-                    features = self.model.nn_module.forward_2d(frames.unsqueeze(0))
+                    if self.tta:
+                        frames = torch.stack([frames, hflip(frames)], dim=0)
+                    else:
+                        frames = frames.unsqueeze(0)
+                    features = self.model.nn_module.forward_2d(frames)
                     self._stack_indexes2features[stack_indexes] = features
             features = torch.cat([self._stack_indexes2features[s] for s in stacks_indexes], dim=1)
             features = self.model.nn_module.forward_3d(features)
             prediction = self.model.nn_module.forward_head(features)
             prediction = self.model.prediction_transform(prediction)
-            return prediction[0], predict_index
+            prediction = torch.mean(prediction, dim=0)
+            return prediction, predict_index
         else:
             return None, predict_index
