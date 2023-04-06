@@ -20,6 +20,7 @@ class MultiDimStackerPredictor:
     def __init__(self, model_path: Path, device: str = "cuda:0"):
         self.model = argus.load_model(model_path, device=device, optimizer=None, loss=None)
         self.model.eval()
+        self.device = self.model.device
         assert self.model.params["nn_module"][0] == "multidim_stacker"
         self.frames_processor = get_frames_processor(*self.model.params["frames_processor"])
         self.frame_stack_size = self.model.params["frame_stack_size"]

@@ -224,7 +224,7 @@ class MultiDimStacker(nn.Module):
         )  # (2, 5, 192, 23, 40)
         return conv2d_features
 
-    def forward_3d(self, conv2d_features: torch.Tensor):
+    def forward_3d(self, conv2d_features):
         b, t, c, h, w = conv2d_features.shape  # (2, 5, 192, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
         conv2d_features = conv2d_features.transpose(1, 2)  # (2, 192, 5, 23, 40)
