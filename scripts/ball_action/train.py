@@ -145,16 +145,18 @@ def train_ball_action(config: dict, save_dir: Path):
         frames_process_fn=frames_processor,
     )
     print(f"Val dataset len {len(val_dataset)}")
-    train_loader = RandomSeekDataLoader(train_dataset,
-                                        batch_size=config["batch_size"],
-                                        num_nvenc_workers=config["num_nvenc_workers"],
-                                        num_opencv_workers=config["num_opencv_workers"],
-                                        gpu_id=device.index)
+    train_loader = RandomSeekDataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        num_nvenc_workers=config["num_nvenc_workers"],
+        num_opencv_workers=config["num_opencv_workers"],
+        gpu_id=device.index,
+    )
     val_loader = SequentialDataLoader(
         val_dataset,
         batch_size=config["batch_size"],
         frame_buffer_size=config["frame_stack_size"] * config["frame_stack_step"],
-        gpu_id=device.index
+        gpu_id=device.index,
     )
 
     for num_epochs, stage in zip(config["num_epochs"], config["stages"]):
