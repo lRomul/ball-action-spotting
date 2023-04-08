@@ -11,7 +11,6 @@ from src.frame_fetchers import NvDecFrameFetcher
 from src.ball_action import constants
 
 
-NUM_HALVES = 2
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
 POSTPROCESS_PARAMS = {
@@ -106,7 +105,7 @@ def predict_game(predictor: MultiDimStackerPredictor,
     print("Predict game:", game)
 
     half2class_actions = dict()
-    halves = list(range(1, NUM_HALVES + 1))
+    halves = list(range(1, constants.num_halves + 1))
     half2video_info = dict()
     for half in halves:
         class_actions, video_info = predict_video(
