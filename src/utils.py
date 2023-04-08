@@ -5,6 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import cv2  # type: ignore
+from scipy.ndimage import gaussian_filter
+from scipy.signal import find_peaks
 
 
 def get_video_info(video_path: str | Path) -> dict[str, int | float]:
@@ -46,3 +48,15 @@ def get_best_model_path(dir_path, return_score=False, more_better=True):
         return best_model_path, best_score
     else:
         return best_model_path
+
+
+def post_processing(frame_indexes: list[int],
+                    predictions: np.ndarray,
+                    gauss_sigma: float,
+                    height: float,
+                    distance: int) -> tuple[list[int], list[float]]:
+    predictions = gaussian_filter(predictions, gauss_sigma)
+    peaks, _ = find_peaks(predictions, height=height, distance=distance)
+    confidences = predictions[peaks].tolist()
+    action_frame_indexes = (peaks + frame_indexes[0]).tolist()
+    return action_frame_indexes, confidences

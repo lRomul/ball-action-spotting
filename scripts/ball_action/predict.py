@@ -4,14 +4,12 @@ from pathlib import Path
 
 from tqdm import tqdm
 import numpy as np
-from scipy.ndimage import gaussian_filter
-from scipy.signal import find_peaks
 
 import torch
 import argus
 
+from src.utils import get_best_model_path, get_video_info, post_processing
 from src.ball_action.indexes import StackIndexesGenerator
-from src.utils import get_best_model_path, get_video_info
 from src.frame_fetchers import NvDecFrameFetcher
 from src.frames import get_frames_processor
 from src.ball_action import constants
@@ -49,18 +47,6 @@ def read_until_last(frame_fetcher: NvDecFrameFetcher,
             del frame_index2frame[del_frame_index]
         if frame_index == last_frame_index:
             break
-
-
-def post_processing(frame_indexes: list[int],
-                    predictions: np.ndarray,
-                    gauss_sigma: float,
-                    height: float,
-                    distance: int) -> tuple[list[int], list[float]]:
-    predictions = gaussian_filter(predictions, gauss_sigma)
-    peaks, _ = find_peaks(predictions, height=height, distance=distance)
-    confidences = predictions[peaks].tolist()
-    action_frame_indexes = (peaks + frame_indexes[0]).tolist()
-    return action_frame_indexes, confidences
 
 
 def get_raw_predictions(model: argus.Model,

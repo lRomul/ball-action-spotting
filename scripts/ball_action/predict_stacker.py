@@ -4,10 +4,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 import numpy as np
-from scipy.ndimage import gaussian_filter
-from scipy.signal import find_peaks
 
-from src.utils import get_best_model_path, get_video_info
+from src.utils import get_best_model_path, get_video_info, post_processing
 from src.predictors import MultiDimStackerPredictor
 from src.frame_fetchers import NvDecFrameFetcher
 from src.ball_action import constants
@@ -31,18 +29,6 @@ def parse_arguments():
     parser.add_argument("--gpu_id", default=0, type=int)
     parser.add_argument('--use_saved_predictions', action='store_true')
     return parser.parse_args()
-
-
-def post_processing(frame_indexes: list[int],
-                    predictions: np.ndarray,
-                    gauss_sigma: float,
-                    height: float,
-                    distance: int) -> tuple[list[int], list[float]]:
-    predictions = gaussian_filter(predictions, gauss_sigma)
-    peaks, _ = find_peaks(predictions, height=height, distance=distance)
-    confidences = predictions[peaks].tolist()
-    action_frame_indexes = (peaks + frame_indexes[0]).tolist()
-    return action_frame_indexes, confidences
 
 
 def get_raw_predictions(predictor: MultiDimStackerPredictor,
