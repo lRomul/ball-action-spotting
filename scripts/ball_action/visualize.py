@@ -55,17 +55,9 @@ def draw_graph(targets, predictions, pred_actions, length=96, height=33, upscale
     return graph
 
 
-def visualize_video(half: int,
-                    game_dir: Path,
-                    game_prediction_dir: Path,
-                    game_visualization_dir: Path,
-                    game_video_data: dict,
-                    gpu_id: int):
-    video_path = game_dir / f"{half}_{RESOLUTION}.mkv"
-    visualize_video_path = game_visualization_dir / f"{half}_{RESOLUTION}.avi"
+def load_video_predictions(game_prediction_dir: Path, half: int):
     raw_predictions_path = game_prediction_dir / f"{half}_raw_predictions.npz"
-    video_target = VideoTarget(game_video_data)
-    raw_predictions_npz = np.load(raw_predictions_path)
+    raw_predictions_npz = np.load(str(raw_predictions_path))
     frame_indexes = raw_predictions_npz["frame_indexes"]
     raw_predictions = raw_predictions_npz["raw_predictions"]
     video_prediction = defaultdict(lambda: np.zeros(2, dtype=np.float32))
@@ -78,6 +70,19 @@ def visualize_video(half: int,
         )
         for frame_index in action_frame_indexes:
             video_pred_actions[frame_index][cls_index] = 1.0
+    return video_prediction, video_pred_actions
+
+
+def visualize_video(half: int,
+                    game_dir: Path,
+                    game_prediction_dir: Path,
+                    game_visualization_dir: Path,
+                    game_video_data: dict,
+                    gpu_id: int):
+    video_path = game_dir / f"{half}_{RESOLUTION}.mkv"
+    visualize_video_path = game_visualization_dir / f"{half}_{RESOLUTION}.avi"
+    video_target = VideoTarget(game_video_data)
+    video_prediction, video_pred_actions = load_video_predictions(game_prediction_dir, half)
 
     video_info = get_video_info(video_path)
     frame_fetcher = NvDecFrameFetcher(video_path, gpu_id=gpu_id)
