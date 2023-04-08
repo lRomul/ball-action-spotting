@@ -77,8 +77,8 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": -1.0,
-            "gamma": 0.5,
+            "alpha": 0.7,
+            "gamma": 1.0,
             "reduction": "mean",
         }),
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
