@@ -3,6 +3,7 @@ from src.constants import data_dir, soccernet_dir
 ball_action_dir = data_dir / "ball_action"
 experiments_dir = ball_action_dir / "experiments"
 predictions_dir = ball_action_dir / "predictions"
+visualizations_dir = ball_action_dir / "visualizations"
 
 ball_action_soccernet_dir = soccernet_dir / "spotting-ball-2023"
 
@@ -40,3 +41,8 @@ target2class: dict[int, str] = {trg: cls for trg, cls in enumerate(classes)}
 class2target: dict[str, int] = {cls: trg for trg, cls in enumerate(classes)}
 
 num_halves = 2
+postprocess_params = {
+    "gauss_sigma": 3.0,
+    "height": 0.2,
+    "distance": 15,
+}

@@ -13,11 +13,6 @@ from src.ball_action import constants
 
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
-POSTPROCESS_PARAMS = {
-    "gauss_sigma": 3.0,
-    "height": 0.2,
-    "distance": 15,
-}
 TTA = True
 
 
@@ -88,7 +83,7 @@ def predict_video(predictor: MultiDimStackerPredictor,
     class2actions = dict()
     for cls, cls_index in constants.class2target.items():
         class2actions[cls] = post_processing(
-            frame_indexes, raw_predictions[:, cls_index], **POSTPROCESS_PARAMS
+            frame_indexes, raw_predictions[:, cls_index], **constants.postprocess_params
         )
         print(f"Predicted {len(class2actions[cls][0])} {cls} actions")
 
@@ -143,7 +138,7 @@ def predict_game(predictor: MultiDimStackerPredictor,
         json.dump(results_spotting, outfile, indent=4)
     print("Spotting results saved to", results_spotting_path)
     with open(game_prediction_dir / "postprocess_params.json", "w") as outfile:
-        json.dump(POSTPROCESS_PARAMS, outfile, indent=4)
+        json.dump(constants.postprocess_params, outfile, indent=4)
 
 
 def predict_games(experiment: str, split: str, gpu_id: int, use_saved_predictions: bool):
