@@ -6,15 +6,21 @@ from torch import nn
 import timm
 import argus
 from argus.engine import State
+from argus.loss import pytorch_losses
 from argus.utils import deep_to, deep_detach, deep_chunk
 
 from src.models.multidim_stacker import MultiDimStacker
+from src.losses import FocalLoss
 
 
 class BallActionModel(argus.Model):
     nn_module = {
         "timm": timm.create_model,
         "multidim_stacker": MultiDimStacker,
+    }
+    loss = {
+        **pytorch_losses,
+        "focal_loss": FocalLoss,
     }
     prediction_transform = nn.Sigmoid
 
