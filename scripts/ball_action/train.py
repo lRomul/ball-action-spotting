@@ -77,8 +77,8 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": -1.0,
             "gamma": 1.0,
+            "alpha": [0.42, 0.58],
             "reduction": "mean",
         }),
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
@@ -87,7 +87,7 @@ CONFIG = dict(
         "frame_stack_size": FRAME_STACK_SIZE,
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
-        "iter_size": 1,
+        "iter_size": 2,
         "frames_processor": ("pad_normalize", {
             "size": IMAGE_SIZE,
             "pad_mode": "constant",
