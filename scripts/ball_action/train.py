@@ -26,9 +26,11 @@ from src.frames import get_frames_processor
 from src.ball_action import constants
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--experiment", required=True, type=str)
-args = parser.parse_args()
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--experiment", required=True, type=str)
+    parser.add_argument('--folds', default='all', type=str)
+    return parser.parse_args()
 
 
 def get_lr(base_lr, batch_size, base_batch_size=4):
@@ -58,7 +60,6 @@ CONFIG = dict(
     num_opencv_workers=1,
     num_epochs=[6, 30],
     stages=["warmup", "train"],
-    experiments_dir=str(constants.experiments_dir / args.experiment),
     argus_params={
         "nn_module": ("multidim_stacker", {
             "model_name": "tf_efficientnetv2_b0",
@@ -102,7 +103,8 @@ CONFIG = dict(
 )
 
 
-def train_ball_action(config: dict, save_dir: Path):
+def train_ball_action(config: dict, save_dir: Path,
+                      train_games: list[str], val_games: list[str]):
     model = BallActionModel(config["argus_params"])
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
@@ -129,7 +131,7 @@ def train_ball_action(config: dict, save_dir: Path):
         checkpoint = Checkpoint
 
     device = torch.device(config["argus_params"]["device"][0])
-    train_data = get_videos_data(constants.train_games)
+    train_data = get_videos_data(train_games)
     train_dataset = TrainActionBallDataset(
         train_data,
         indexes_generator=indexes_generator,
@@ -141,7 +143,7 @@ def train_ball_action(config: dict, save_dir: Path):
         frame_index_shaker=frame_index_shaker,
     )
     print(f"Train dataset len {len(train_dataset)}")
-    val_data = get_videos_data(constants.val_games, add_empty_actions=True)
+    val_data = get_videos_data(val_games, add_empty_actions=True)
     val_dataset = ValActionBallDataset(
         val_data,
         indexes_generator=indexes_generator,
@@ -203,8 +205,9 @@ def train_ball_action(config: dict, save_dir: Path):
 
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
+    args = parse_arguments()
 
-    experiments_dir = Path(CONFIG["experiments_dir"])
+    experiments_dir = constants.experiments_dir / args.experiment
     print("Experiment dir", experiments_dir)
     if not experiments_dir.exists():
         experiments_dir.mkdir(parents=True, exist_ok=True)
@@ -218,4 +221,19 @@ if __name__ == "__main__":
     with open(experiments_dir / "config.json", "w") as outfile:
         json.dump(CONFIG, outfile, indent=4)
 
-    train_ball_action(CONFIG, experiments_dir)
+    if args.folds == 'all':
+        folds = constants.folds
+    else:
+        folds = [int(fold) for fold in args.folds.split(',')]
+
+    for fold in folds:
+        train_folds = list(set(constants.folds) - {fold})
+        val_games = constants.fold2games[fold]
+        train_games = []
+        for train_fold in train_folds:
+            train_games += constants.fold2games[train_fold]
+        fold_experiment_dir = experiments_dir / f'fold_{fold}'
+        print(f"Val fold: {fold}, train folds: {train_folds}")
+        print(f"Val games: {val_games}, train games: {train_games}")
+        print(f"Fold experiment dir: {fold_experiment_dir}")
+        train_ball_action(CONFIG, fold_experiment_dir, train_games, val_games)
