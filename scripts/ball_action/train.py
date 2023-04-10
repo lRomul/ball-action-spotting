@@ -29,7 +29,7 @@ from src.ball_action import constants
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", required=True, type=str)
-    parser.add_argument('--folds', default='all', type=str)
+    parser.add_argument("--folds", default="all", type=str)
     return parser.parse_args()
 
 
@@ -221,10 +221,10 @@ if __name__ == "__main__":
     with open(experiments_dir / "config.json", "w") as outfile:
         json.dump(CONFIG, outfile, indent=4)
 
-    if args.folds == 'all':
+    if args.folds == "all":
         folds = constants.folds
     else:
-        folds = [int(fold) for fold in args.folds.split(',')]
+        folds = [int(fold) for fold in args.folds.split(",")]
 
     for fold in folds:
         train_folds = list(set(constants.folds) - {fold})
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         train_games = []
         for train_fold in train_folds:
             train_games += constants.fold2games[train_fold]
-        fold_experiment_dir = experiments_dir / f'fold_{fold}'
+        fold_experiment_dir = experiments_dir / f"fold_{fold}"
         print(f"Val fold: {fold}, train folds: {train_folds}")
         print(f"Val games: {val_games}, train games: {train_games}")
         print(f"Fold experiment dir: {fold_experiment_dir}")
