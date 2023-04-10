@@ -19,7 +19,7 @@ RESOLUTION = "720p"
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", required=True, type=str)
-    parser.add_argument("--split", default="test", type=str)
+    parser.add_argument("--folds", default="all", type=str)
     parser.add_argument("--gpu_id", default=0, type=int)
     return parser.parse_args()
 
@@ -141,16 +141,22 @@ def visualize_game(game: str,
                         game_visualization_dir, game_video_data, gpu_id)
 
 
-def visualize_games(experiment: str, split: str, gpu_id: int):
-    assert split in {"train", "val", "test", "challenge"}
-    print(f"Visualize games: {experiment=}, {split=}, {gpu_id=}")
-    prediction_dir = constants.predictions_dir / experiment / split
-    visualization_dir = constants.visualizations_dir / experiment / split
-    games = constants.split2games[split]
+def visualize_fold(experiment: str, fold: int, gpu_id: int):
+    print(f"Visualize games: {experiment=}, {fold=}, {gpu_id=}")
+    prediction_dir = constants.predictions_dir / experiment / f"fold_{fold}"
+    visualization_dir = constants.visualizations_dir / experiment / f"fold_{fold}"
+    games = constants.fold2games[fold]
     for game in games:
         visualize_game(game, prediction_dir, visualization_dir, gpu_id)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    visualize_games(args.experiment, args.split, args.gpu_id)
+
+    if args.folds == "all":
+        folds = constants.folds
+    else:
+        folds = [int(fold) for fold in args.folds.split(",")]
+
+    for fold in folds:
+        visualize_fold(args.experiment, fold, args.gpu_id)
