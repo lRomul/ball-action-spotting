@@ -21,6 +21,7 @@ def parse_arguments():
     parser.add_argument("--experiment", required=True, type=str)
     parser.add_argument("--folds", default="all", type=str)
     parser.add_argument("--gpu_id", default=0, type=int)
+    parser.add_argument("--challenge", action="store_true")
     parser.add_argument("--use_saved_predictions", action="store_true")
     return parser.parse_args()
 
@@ -141,18 +142,24 @@ def predict_game(predictor: MultiDimStackerPredictor,
         json.dump(constants.postprocess_params, outfile, indent=4)
 
 
-def predict_fold(experiment: str, fold: int, gpu_id: int, use_saved_predictions: bool):
-    print(f"Predict games: {experiment=}, {fold=}, {gpu_id=}")
+def predict_fold(experiment: str, fold: int, gpu_id: int,
+                 challenge: bool, use_saved_predictions: bool):
+    print(f"Predict games: {experiment=}, {fold=}, {gpu_id=} {challenge=}")
     experiment_dir = constants.experiments_dir / experiment / f"fold_{fold}"
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
     predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
-    prediction_dir = constants.predictions_dir / experiment / f"fold_{fold}"
+    if challenge:
+        data_split = "challenge"
+        games = constants.challenge_games
+    else:
+        data_split = "cv"
+        games = constants.fold2games[fold]
+    prediction_dir = constants.predictions_dir / experiment / data_split / f"fold_{fold}"
     if not prediction_dir.exists():
         prediction_dir.mkdir(parents=True, exist_ok=True)
     else:
         print(f"Folder {prediction_dir} already exists.")
-    games = constants.fold2games[fold]
     for game in games:
         predict_game(predictor, game, prediction_dir, use_saved_predictions)
 
@@ -166,4 +173,5 @@ if __name__ == "__main__":
         folds = [int(fold) for fold in args.folds.split(",")]
 
     for fold in folds:
-        predict_fold(args.experiment, fold, args.gpu_id, args.use_saved_predictions)
+        predict_fold(args.experiment, fold, args.gpu_id,
+                     args.challenge, args.use_saved_predictions)

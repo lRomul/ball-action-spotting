@@ -21,6 +21,7 @@ def parse_arguments():
     parser.add_argument("--experiment", required=True, type=str)
     parser.add_argument("--folds", default="all", type=str)
     parser.add_argument("--gpu_id", default=0, type=int)
+    parser.add_argument("--challenge", action="store_true")
     return parser.parse_args()
 
 
@@ -126,28 +127,38 @@ def visualize_video(half: int,
 def visualize_game(game: str,
                    prediction_dir: Path,
                    visualization_dir: Path,
-                   gpu_id: int):
+                   gpu_id: int,
+                   challenge: bool):
     game_dir = constants.ball_action_soccernet_dir / game
     game_prediction_dir = prediction_dir / game
     game_visualization_dir = visualization_dir / game
     game_visualization_dir.mkdir(parents=True, exist_ok=True)
     print("Visualize game:", game)
-    game_videos_data = get_game_videos_data(game, resolution=RESOLUTION)
-
     halves = list(range(1, constants.num_halves + 1))
+    if challenge:
+        game_videos_data = [{"half": h, "frame_index2action": dict()} for h in halves]
+    else:
+        game_videos_data = get_game_videos_data(game, resolution=RESOLUTION)
+
     for half, game_video_data in zip(halves, game_videos_data):
         assert half == game_video_data["half"]
         visualize_video(half, game_dir, game_prediction_dir,
                         game_visualization_dir, game_video_data, gpu_id)
 
 
-def visualize_fold(experiment: str, fold: int, gpu_id: int):
-    print(f"Visualize games: {experiment=}, {fold=}, {gpu_id=}")
-    prediction_dir = constants.predictions_dir / experiment / f"fold_{fold}"
-    visualization_dir = constants.visualizations_dir / experiment / f"fold_{fold}"
-    games = constants.fold2games[fold]
+def visualize_fold(experiment: str, fold: int, gpu_id: int, challenge: bool):
+    print(f"Visualize games: {experiment=}, {fold=}, {gpu_id=} {challenge=}")
+    if challenge:
+        data_split = "challenge"
+        games = constants.challenge_games
+    else:
+        data_split = "cv"
+        games = constants.fold2games[fold]
+    prediction_dir = constants.predictions_dir / experiment / data_split / f"fold_{fold}"
+    visualization_dir = constants.visualizations_dir / experiment / data_split / f"fold_{fold}"
+
     for game in games:
-        visualize_game(game, prediction_dir, visualization_dir, gpu_id)
+        visualize_game(game, prediction_dir, visualization_dir, gpu_id, challenge)
 
 
 if __name__ == "__main__":
@@ -159,4 +170,4 @@ if __name__ == "__main__":
         folds = [int(fold) for fold in args.folds.split(",")]
 
     for fold in folds:
-        visualize_fold(args.experiment, fold, args.gpu_id)
+        visualize_fold(args.experiment, fold, args.gpu_id, args.challenge)

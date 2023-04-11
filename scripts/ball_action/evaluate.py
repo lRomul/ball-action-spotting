@@ -160,7 +160,7 @@ def evaluate(SoccerNet_path, Predictions_path, list_games, prediction_file="resu
 
 def evaluate_predictions(experiment: str, fold: int):
     print(f"Evaluate predictions: {experiment=}, {fold=}")
-    predictions_path = constants.predictions_dir / experiment / f"fold_{fold}"
+    predictions_path = constants.predictions_dir / experiment / "cv" / f"fold_{fold}"
     print("Predictions path", predictions_path)
     games = constants.fold2games[fold]
     print("Evaluate games", games)
