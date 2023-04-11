@@ -79,7 +79,7 @@ CONFIG = dict(
         }),
         "loss": ("focal_loss", {
             "alpha": -1.0,
-            "gamma": 1.5,
+            "gamma": 1.2,
             "reduction": "mean",
         }),
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
