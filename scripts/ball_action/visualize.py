@@ -134,13 +134,12 @@ def visualize_game(game: str,
     game_visualization_dir = visualization_dir / game
     game_visualization_dir.mkdir(parents=True, exist_ok=True)
     print("Visualize game:", game)
-    halves = list(range(1, constants.num_halves + 1))
     if challenge:
-        game_videos_data = [{"half": h, "frame_index2action": dict()} for h in halves]
+        game_videos_data = [{"half": h, "frame_index2action": dict()} for h in constants.halves]
     else:
         game_videos_data = get_game_videos_data(game, resolution=RESOLUTION)
 
-    for half, game_video_data in zip(halves, game_videos_data):
+    for half, game_video_data in zip(constants.halves, game_videos_data):
         assert half == game_video_data["half"]
         visualize_video(half, game_dir, game_prediction_dir,
                         game_visualization_dir, game_video_data, gpu_id)

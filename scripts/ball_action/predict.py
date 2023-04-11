@@ -1,11 +1,11 @@
-import json
 import argparse
 from pathlib import Path
 
 from tqdm import tqdm
 import numpy as np
 
-from src.utils import get_best_model_path, get_video_info, post_processing
+from src.ball_action.annotations import raw_predictions_to_actions, prepare_game_spotting_results
+from src.utils import get_best_model_path, get_video_info
 from src.predictors import MultiDimStackerPredictor
 from src.frame_fetchers import NvDecFrameFetcher
 from src.ball_action import constants
@@ -59,10 +59,12 @@ def predict_video(predictor: MultiDimStackerPredictor,
                   half: int,
                   game_dir: Path,
                   game_prediction_dir: Path,
-                  use_saved_predictions: bool) -> tuple[dict[str, tuple], dict]:
+                  use_saved_predictions: bool) -> dict[str, tuple]:
     video_path = game_dir / f"{half}_{RESOLUTION}.mkv"
     video_info = get_video_info(video_path)
     print("Video info:", video_info)
+    assert video_info["fps"] == constants.video_fps
+
     raw_predictions_path = game_prediction_dir / f"{half}_raw_predictions.npz"
 
     if use_saved_predictions:
@@ -81,14 +83,8 @@ def predict_video(predictor: MultiDimStackerPredictor,
         )
         print("Raw predictions saved to", raw_predictions_path)
 
-    class2actions = dict()
-    for cls, cls_index in constants.class2target.items():
-        class2actions[cls] = post_processing(
-            frame_indexes, raw_predictions[:, cls_index], **constants.postprocess_params
-        )
-        print(f"Predicted {len(class2actions[cls][0])} {cls} actions")
-
-    return class2actions, video_info
+    class2actions = raw_predictions_to_actions(frame_indexes, raw_predictions)
+    return class2actions
 
 
 def predict_game(predictor: MultiDimStackerPredictor,
@@ -101,45 +97,13 @@ def predict_game(predictor: MultiDimStackerPredictor,
     print("Predict game:", game)
 
     half2class_actions = dict()
-    halves = list(range(1, constants.num_halves + 1))
-    half2video_info = dict()
-    for half in halves:
-        class_actions, video_info = predict_video(
+    for half in constants.halves:
+        class_actions = predict_video(
             predictor, half, game_dir, game_prediction_dir, use_saved_predictions
         )
         half2class_actions[half] = class_actions
-        half2video_info[half] = video_info
 
-    results_spotting = {
-        "UrlLocal": game,
-        "predictions": list(),
-    }
-
-    for half in halves:
-        video_info = half2video_info[half]
-        for cls, (frame_indexes, confidences) in half2class_actions[half].items():
-            for frame_index, confidence in zip(frame_indexes, confidences):
-                position = round(frame_index / video_info["fps"] * 1000)
-                seconds = int(frame_index / video_info["fps"])
-                prediction = {
-                    "gameTime": f"{half} - {seconds // 60}:{seconds % 60}",
-                    "label": cls,
-                    "position": str(position),
-                    "half": str(half),
-                    "confidence": str(confidence),
-                }
-                results_spotting["predictions"].append(prediction)
-    results_spotting["predictions"] = sorted(
-        results_spotting["predictions"],
-        key=lambda pred: (int(pred["half"]), int(pred["position"]))
-    )
-
-    results_spotting_path = game_prediction_dir / "results_spotting.json"
-    with open(results_spotting_path, "w") as outfile:
-        json.dump(results_spotting, outfile, indent=4)
-    print("Spotting results saved to", results_spotting_path)
-    with open(game_prediction_dir / "postprocess_params.json", "w") as outfile:
-        json.dump(constants.postprocess_params, outfile, indent=4)
+    prepare_game_spotting_results(half2class_actions, game, prediction_dir)
 
 
 def predict_fold(experiment: str, fold: int, gpu_id: int,
