@@ -12,14 +12,14 @@ parser.add_argument('--dataset_dir', type=str, required=True,
                     help="Path for dataset directory ")
 parser.add_argument('--password_videos', type=str, required=True,
                     help="Password to videos from the NDA")
-parser.add_argument('--only_train_val', action='store_true',
+parser.add_argument('--without_challenge', action='store_true',
                     help="Download only train and valid splits")
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
-    if args.only_train_val:
-        list_splits = ["train", "valid"]
+    if args.without_challenge:
+        list_splits = ["train", "valid", "test"]
     else:
         list_splits = ["train", "valid", "test", "challenge"]
 
