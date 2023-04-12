@@ -45,10 +45,13 @@ class SequentialWorkerStream(ProcessStream):
         self._frame_index2frame = dict()
 
     def read_until_last(self, last_frame_index: int):
+        if self._last_frame_index >= last_frame_index:
+            return
         while True:
             frame = self._frame_fetcher.fetch_frame()
             frame_index = self._frame_fetcher.current_index
             self._frame_index2frame[frame_index] = frame
+            self._last_frame_index = frame_index
             del_frame_index = frame_index - self._frame_buffer_size
             if del_frame_index in self._frame_index2frame:
                 del self._frame_index2frame[del_frame_index]
