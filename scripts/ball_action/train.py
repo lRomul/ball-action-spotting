@@ -77,11 +77,7 @@ CONFIG = dict(
             "drop_path_rate": 0.2,
             "act_layer": "silu",
         }),
-        "loss": ("focal_loss", {
-            "alpha": -1.0,
-            "gamma": 1.2,
-            "reduction": "mean",
-        }),
+        "loss": "BCEWithLogitsLoss",
         "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
