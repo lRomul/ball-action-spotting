@@ -145,16 +145,23 @@ def visualize_game(game: str,
                         game_visualization_dir, game_video_data, gpu_id)
 
 
-def visualize_fold(experiment: str, fold: int, gpu_id: int, challenge: bool):
+def visualize_fold(experiment: str, fold: int | str, gpu_id: int, challenge: bool):
     print(f"Visualize games: {experiment=}, {fold=}, {gpu_id=} {challenge=}")
     if challenge:
         data_split = "challenge"
         games = constants.challenge_games
+        if fold == "ensemble":
+            fold_dir = "ensemble"
+        else:
+            fold_dir = f"fold_{fold}"
     else:
         data_split = "cv"
         games = constants.fold2games[fold]
-    prediction_dir = constants.predictions_dir / experiment / data_split / f"fold_{fold}"
-    visualization_dir = constants.visualizations_dir / experiment / data_split / f"fold_{fold}"
+        if fold == "ensemble":
+            raise ValueError("Ensemble visualization possible only with challenge")
+        fold_dir = f"fold_{fold}"
+    prediction_dir = constants.predictions_dir / experiment / data_split / fold_dir
+    visualization_dir = constants.visualizations_dir / experiment / data_split / fold_dir
 
     for game in games:
         visualize_game(game, prediction_dir, visualization_dir, gpu_id, challenge)
@@ -165,6 +172,8 @@ if __name__ == "__main__":
 
     if args.folds == "all":
         folds = constants.folds
+    elif args.folds == "ensemble":
+        folds = ["ensemble"]
     else:
         folds = [int(fold) for fold in args.folds.split(",")]
 
