@@ -118,7 +118,7 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
 def get_video_sampling_weights(video_data: dict,
                                action_window_size: int,
                                action_prob: float,
-                               experiment: str,
+                               pred_experiment: str,
                                clear_pred_window_size: int) -> np.ndarray:
     assert clear_pred_window_size >= action_window_size
     weights = np.zeros(video_data["frame_count"])
@@ -130,19 +130,18 @@ def get_video_sampling_weights(video_data: dict,
     weights = maximum_filter(weights, size=action_window_size)
     clear_pred_mask -= weights
     clear_pred_mask = clear_pred_mask == 1.0
-    action_mask: np.ndarray = weights == 1.0
-    no_action_mask = ~action_mask
+    no_action_mask = weights == 0.0
     no_action_count = no_action_mask.sum()
 
     no_action_weights_sum = (1 - action_prob) / action_prob * weights.sum()
     weights[no_action_mask] = no_action_weights_sum / no_action_count
 
-    if experiment:
+    if pred_experiment:
         game = video_data["game"]
         half = video_data["half"]
         prediction_path = (
                 constants.predictions_dir
-                / experiment
+                / pred_experiment
                 / "cv"
                 / f"fold_{constants.game2fold[game]}"
                 / game
@@ -166,12 +165,12 @@ def get_video_sampling_weights(video_data: dict,
 def get_videos_sampling_weights(videos_data: list[dict],
                                 action_window_size: int,
                                 action_prob: float,
-                                experiment: str,
+                                pred_experiment: str,
                                 clear_pred_window_size: int) -> list[np.ndarray]:
     videos_sampling_weights = []
     for video_data in videos_data:
         video_sampling_weights = get_video_sampling_weights(
-            video_data, action_window_size, action_prob, experiment, clear_pred_window_size
+            video_data, action_window_size, action_prob, pred_experiment, clear_pred_window_size
         )
         videos_sampling_weights.append(video_sampling_weights)
     return videos_sampling_weights

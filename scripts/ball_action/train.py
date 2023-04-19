@@ -13,6 +13,7 @@ from argus.callbacks import (
     LambdaLR,
 )
 
+from src.ball_action.annotations import get_videos_data, get_videos_sampling_weights
 from src.ball_action.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
 from src.ball_action.indexes import StackIndexesGenerator, FrameIndexShaker
@@ -20,7 +21,6 @@ from src.ball_action.augmentations import get_train_augmentations
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
 from src.ball_action.argus_models import BallActionModel
-from src.ball_action.annotations import get_videos_data
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
 from src.ball_action import constants
@@ -53,8 +53,12 @@ CONFIG = dict(
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
     train_epoch_size=6000,
-    train_action_prob=0.5,
-    train_action_random_shift=4,
+    train_sampling_weights=dict(
+        action_window_size=9,
+        action_prob=0.5,
+        pred_experiment="",
+        clear_pred_window_size=9,
+    ),
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
@@ -132,12 +136,14 @@ def train_ball_action(config: dict, save_dir: Path,
 
     device = torch.device(config["argus_params"]["device"][0])
     train_data = get_videos_data(train_games)
+    videos_sampling_weights = get_videos_sampling_weights(
+        train_data, **config["train_sampling_weights"],
+    )
     train_dataset = TrainActionBallDataset(
         train_data,
         indexes_generator=indexes_generator,
         epoch_size=config["train_epoch_size"],
-        action_prob=config["train_action_prob"],
-        action_random_shift=config["train_action_random_shift"],
+        videos_sampling_weights=videos_sampling_weights,
         target_process_fn=targets_processor,
         frames_process_fn=frames_processor,
         frame_index_shaker=frame_index_shaker,
