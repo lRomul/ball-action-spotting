@@ -87,8 +87,7 @@ class TrainActionBallDataset(ActionBallDataset):
             videos_data: list[dict],
             indexes_generator: StackIndexesGenerator,
             epoch_size: int,
-            action_prob: float,
-            action_random_shift: int,
+            videos_sampling_weights: list[np.ndarray],
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
             frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
             frame_index_shaker: Optional[FrameIndexShaker] = None,
@@ -100,9 +99,10 @@ class TrainActionBallDataset(ActionBallDataset):
             frames_process_fn=frames_process_fn,
         )
         self.epoch_size = epoch_size
-        self.action_prob = action_prob
-        self.action_random_shift = action_random_shift
         self.frame_index_shaker = frame_index_shaker
+
+        self.videos_sampling_weights = videos_sampling_weights
+        self.videos_frame_indexes = [np.arange(v["frame_count"]) for v in videos_data]
 
     def __len__(self) -> int:
         return self.epoch_size
@@ -110,23 +110,14 @@ class TrainActionBallDataset(ActionBallDataset):
     def get_video_frame_indexes(self, index) -> tuple[int, list[int]]:
         set_random_seed(index)
         video_index = random.randrange(0, self.num_videos)
-        video_target = self.videos_target[video_index]
-        video_data = self.videos_data[video_index]
-        video_frame_count = video_data["frame_count"]
-        if random.random() < self.action_prob:
-            action_index = random.randrange(0, video_target.num_actions())
-            frame_index = video_target.get_frame_index_by_action_index(action_index)
-            if self.action_random_shift:
-                frame_index += random.randint(-self.action_random_shift, self.action_random_shift)
-        else:
-            frame_index = random.randrange(
-                self.indexes_generator.behind,
-                video_frame_count - self.indexes_generator.ahead
-            )
+        frame_index = np.random.choice(self.videos_frame_indexes[video_index],
+                                       p=self.videos_sampling_weights[video_index])
         save_zone = 1
         if self.frame_index_shaker is not None:
             save_zone += max(abs(sh) for sh in self.frame_index_shaker.shifts)
-        frame_index = self.indexes_generator.clip_index(frame_index, video_frame_count, save_zone)
+        frame_index = self.indexes_generator.clip_index(
+            frame_index, self.videos_data[video_index]["frame_count"], save_zone
+        )
         frame_indexes = self.indexes_generator.make_stack_indexes(frame_index)
         if self.frame_index_shaker is not None:
             frame_indexes = self.frame_index_shaker(frame_indexes)
