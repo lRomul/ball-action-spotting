@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.ndimage import maximum_filter
 
 from src.utils import get_video_info, post_processing
 from src.ball_action import constants
@@ -31,6 +32,7 @@ def get_game_videos_data(game: str,
         half_video_path = str(game_dir / f"{half}_{resolution}.mkv")
         half2video_data[half] = dict(
             video_path=half_video_path,
+            game=game,
             half=half,
             **get_video_info(half_video_path),
             frame_index2action=dict(),
@@ -111,3 +113,65 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
     print("Spotting results saved to", results_spotting_path)
     with open(game_prediction_dir / "postprocess_params.json", "w") as outfile:
         json.dump(constants.postprocess_params, outfile, indent=4)
+
+
+def get_video_sampling_weights(video_data: dict,
+                               action_window_size: int,
+                               action_prob: float,
+                               experiment: str,
+                               clear_pred_window_size: int) -> np.ndarray:
+    assert clear_pred_window_size >= action_window_size
+    weights = np.zeros(video_data["frame_count"])
+
+    for frame_index, action in video_data["frame_index2action"].items():
+        weights[frame_index] = 1.0
+
+    clear_pred_mask = maximum_filter(weights, size=clear_pred_window_size)
+    weights = maximum_filter(weights, size=action_window_size)
+    clear_pred_mask -= weights
+    clear_pred_mask = clear_pred_mask == 1.0
+    action_mask: np.ndarray = weights == 1.0
+    no_action_mask = ~action_mask
+    no_action_count = no_action_mask.sum()
+
+    no_action_weights_sum = (1 - action_prob) / action_prob * weights.sum()
+    weights[no_action_mask] = no_action_weights_sum / no_action_count
+
+    if experiment:
+        game = video_data["game"]
+        half = video_data["half"]
+        prediction_path = (
+                constants.predictions_dir
+                / experiment
+                / "cv"
+                / f"fold_{constants.game2fold[game]}"
+                / game
+                / f"{half}_raw_predictions.npz"
+        )
+        with np.load(str(prediction_path)) as npz_predictions:
+            frame_indexes = npz_predictions["frame_indexes"]
+            predictions = npz_predictions["raw_predictions"]
+
+        predictions = np.max(predictions, axis=1)
+        start = frame_indexes[0]
+        end = frame_indexes[-1] + 1
+        weights[start: end] = np.max([weights[start: end], predictions], axis=0)
+        weights[clear_pred_mask] = no_action_weights_sum / no_action_count
+        weights[no_action_mask] *= no_action_weights_sum / weights[no_action_mask].sum()
+
+    weights /= weights.sum()
+    return weights
+
+
+def get_videos_sampling_weights(videos_data: list[dict],
+                                action_window_size: int,
+                                action_prob: float,
+                                experiment: str,
+                                clear_pred_window_size: int) -> list[np.ndarray]:
+    videos_sampling_weights = []
+    for video_data in videos_data:
+        video_sampling_weights = get_video_sampling_weights(
+            video_data, action_window_size, action_prob, experiment, clear_pred_window_size
+        )
+        videos_sampling_weights.append(video_sampling_weights)
+    return videos_sampling_weights
