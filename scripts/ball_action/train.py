@@ -57,7 +57,7 @@ CONFIG = dict(
         action_window_size=9,
         action_prob=0.5,
         pred_experiment="focal_folds_001",
-        clear_pred_window_size=27,
+        clear_pred_window_size=33,
     ),
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
