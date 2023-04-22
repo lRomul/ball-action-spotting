@@ -55,8 +55,8 @@ CONFIG = dict(
     train_epoch_size=6000,
     train_sampling_weights=dict(
         action_window_size=9,
-        action_prob=0.6,
-        pred_experiment="focal_folds_001",
+        action_prob=0.5,
+        pred_experiment="sampling_weights_001",
         clear_pred_window_size=27,
     ),
     metric_accuracy_threshold=0.5,
