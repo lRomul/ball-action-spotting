@@ -24,6 +24,7 @@ from src.ball_action.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
 from src.ball_action import constants
+from src.mixup import TimmMixup
 
 
 def parse_arguments():
@@ -48,7 +49,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.999,
+    ema_decay=0.9995,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
@@ -62,7 +63,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[6, 30],
+    num_epochs=[12, 60],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -104,6 +105,13 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
+    mixup_params={
+        "mixup_alpha": 1.,
+        "prob": 1.,
+        "mode": "elem",
+        "label_smoothing": 0.,
+        "num_classes": constants.num_classes,
+    },
 )
 
 
@@ -115,6 +123,9 @@ def train_ball_action(config: dict, save_dir: Path,
 
     augmentations = get_train_augmentations(config["image_size"])
     model.augmentations = augmentations
+
+    if "mixup_params" in config:
+        model.mixup = TimmMixup(**config["mixup_params"])
 
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]
