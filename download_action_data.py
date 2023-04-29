@@ -18,5 +18,5 @@ if __name__ == "__main__":
     soccernet_downloader.password = args.password_videos
     soccernet_downloader.downloadGames(files=["Labels-v2.json"],
                                        split=["train", "valid", "test"])
-    soccernet_downloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv", "video.ini"],
+    soccernet_downloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"],
                                        split=["train", "valid", "test", "challenge"])
