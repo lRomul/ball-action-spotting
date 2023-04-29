@@ -4,14 +4,13 @@ from sklearn.metrics import average_precision_score, accuracy_score
 import torch
 from argus.metrics import Metric
 
-from src.ball_action import constants
-
 
 class PerClassMetric(Metric):
     name: str = ''
     better: str = 'min'
 
-    def __init__(self):
+    def __init__(self, classes: list[str]):
+        self.target2class = {trg: cls for trg, cls in enumerate(classes)}
         self.predictions = []
         self.targets = []
 
@@ -34,7 +33,7 @@ class PerClassMetric(Metric):
         scores = self.compute()
         name_prefix = f"{state.phase}_" if state.phase else ''
         state.metrics[f"{name_prefix}{self.name}"] = np.mean(scores)
-        for trg, cls in constants.target2class.items():
+        for trg, cls in self.target2class.items():
             state.metrics[f"{name_prefix}{self.name}_{cls.lower()}"] = scores[trg]
 
 
@@ -53,8 +52,8 @@ class Accuracy(PerClassMetric):
     name = 'binary_accuracy'
     better = 'max'
 
-    def __init__(self, threshold: float = 0.5):
-        super().__init__()
+    def __init__(self, classes: list[str], threshold: float = 0.5):
+        super().__init__(classes)
         self.threshold = threshold
 
     def compute(self) -> list[float]:

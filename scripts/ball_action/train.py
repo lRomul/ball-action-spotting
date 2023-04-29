@@ -17,8 +17,8 @@ from src.ball_action.annotations import get_videos_data, get_videos_sampling_wei
 from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
-from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.datasets import TrainActionDataset, ValActionDataset
+from src.metrics import AveragePrecision, Accuracy
 from src.target import MaxWindowTargetsProcessor
 from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
@@ -208,8 +208,8 @@ def train_ball_action(config: dict, save_dir: Path,
             ]
 
         metrics = [
-            AveragePrecision(),
-            Accuracy(threshold=config["metric_accuracy_threshold"]),
+            AveragePrecision(constants.classes),
+            Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
         ]
 
         model.fit(train_loader,
