@@ -8,7 +8,7 @@ from SoccerNet.Downloader import SoccerNetDownloader
 parser = argparse.ArgumentParser(
     description='Prepare data for ball pass and drive action spotting.'
 )
-parser.add_argument('--dataset_dir', type=str, required=True,
+parser.add_argument('--dataset_dir', type=str, default="data/soccernet",
                     help="Path for dataset directory ")
 parser.add_argument('--password_videos', type=str, required=True,
                     help="Password to videos from the NDA")
