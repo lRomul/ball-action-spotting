@@ -6,7 +6,7 @@ import numpy as np
 
 import torch
 
-from src.ball_action.indexes import StackIndexesGenerator, FrameIndexShaker
+from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher
 from src.ball_action.target import VideoTarget
 from src.utils import set_random_seed

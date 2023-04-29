@@ -7,7 +7,7 @@ from kornia.geometry.transform import hflip
 
 import argus
 
-from src.ball_action.indexes import StackIndexesGenerator
+from src.indexes import StackIndexesGenerator
 from src.frames import get_frames_processor
 
 
