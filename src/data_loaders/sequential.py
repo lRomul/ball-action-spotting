@@ -5,14 +5,14 @@ from rosny import ProcessStream
 
 import torch
 
-from src.base_data_loader import BaseDataLoader
-from src.ball_action.datasets import ActionBallDataset
+from src.data_loaders.base_data_loader import BaseDataLoader
 from src.frame_fetchers import NvDecFrameFetcher
+from src.datasets import ActionDataset
 
 
 class SequentialWorkerStream(ProcessStream):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ActionDataset,
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_buffer_size: int,
@@ -83,7 +83,7 @@ class SequentialWorkerStream(ProcessStream):
 
 class SequentialDataLoader(BaseDataLoader):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ActionDataset,
                  batch_size: int,
                  frame_buffer_size: int,
                  gpu_id: int = 0):

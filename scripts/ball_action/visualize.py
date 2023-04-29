@@ -9,7 +9,7 @@ import cv2
 from src.ball_action.annotations import get_game_videos_data
 from src.utils import get_video_info, post_processing
 from src.frame_fetchers import NvDecFrameFetcher
-from src.ball_action.target import VideoTarget
+from src.target import VideoTarget
 from src.ball_action import constants
 
 
@@ -82,7 +82,7 @@ def visualize_video(half: int,
                     gpu_id: int):
     video_path = game_dir / f"{half}_{RESOLUTION}.mkv"
     visualize_video_path = game_visualization_dir / f"{half}_{RESOLUTION}.avi"
-    video_target = VideoTarget(game_video_data)
+    video_target = VideoTarget(game_video_data, constants.classes)
     video_prediction, video_pred_actions = load_video_predictions(game_prediction_dir, half)
 
     video_info = get_video_info(video_path)

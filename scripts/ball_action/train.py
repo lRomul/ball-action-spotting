@@ -14,12 +14,12 @@ from argus.callbacks import (
 )
 
 from src.ball_action.annotations import get_videos_data, get_videos_sampling_weights
-from src.ball_action.data_loaders import RandomSeekDataLoader, SequentialDataLoader
-from src.ball_action.datasets import TrainActionBallDataset, ValActionBallDataset
+from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.ball_action.metrics import AveragePrecision, Accuracy
-from src.ball_action.target import MaxWindowTargetsProcessor
+from src.datasets import TrainActionDataset, ValActionDataset
+from src.target import MaxWindowTargetsProcessor
 from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
@@ -150,8 +150,9 @@ def train_ball_action(config: dict, save_dir: Path,
     videos_sampling_weights = get_videos_sampling_weights(
         train_data, **config["train_sampling_weights"],
     )
-    train_dataset = TrainActionBallDataset(
+    train_dataset = TrainActionDataset(
         train_data,
+        constants.classes,
         indexes_generator=indexes_generator,
         epoch_size=config["train_epoch_size"],
         videos_sampling_weights=videos_sampling_weights,
@@ -161,8 +162,9 @@ def train_ball_action(config: dict, save_dir: Path,
     )
     print(f"Train dataset len {len(train_dataset)}")
     val_data = get_videos_data(val_games, add_empty_actions=True)
-    val_dataset = ValActionBallDataset(
+    val_dataset = ValActionDataset(
         val_data,
+        constants.classes,
         indexes_generator=indexes_generator,
         target_process_fn=targets_processor,
         frames_process_fn=frames_processor,

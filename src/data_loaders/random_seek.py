@@ -5,13 +5,13 @@ from multiprocessing import Queue
 from rosny import ProcessStream, ComposeStream
 
 from src.frame_fetchers import AbstractFrameFetcher, NvDecFrameFetcher, OpencvFrameFetcher
-from src.base_data_loader import BaseDataLoader
-from src.ball_action.datasets import ActionBallDataset
+from src.data_loaders.base_data_loader import BaseDataLoader
+from src.datasets import ActionDataset
 
 
 class RandomSeekWorkerStream(ProcessStream):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ActionDataset,
                  index_queue: Queue,
                  result_queue: Queue,
                  frame_fetcher_class: Type[AbstractFrameFetcher],
@@ -43,7 +43,7 @@ class RandomSeekWorkersStream(ComposeStream):
 
 class RandomSeekDataLoader(BaseDataLoader):
     def __init__(self,
-                 dataset: ActionBallDataset,
+                 dataset: ActionDataset,
                  batch_size: int,
                  num_nvenc_workers: int = 1,
                  num_opencv_workers: int = 0,

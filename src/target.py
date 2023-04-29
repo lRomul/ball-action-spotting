@@ -4,13 +4,14 @@ from collections import defaultdict
 import torch
 import numpy as np
 
-from src.ball_action import constants
-
 
 class VideoTarget:
-    def __init__(self, video_data: dict):
+    def __init__(self, video_data: dict, classes: list[str]):
+        self.classes = classes
+        self.num_classes = len(classes)
+        self.class2target = {cls: trg for trg, cls in enumerate(classes)}
         self.frame_index2class_target: dict[str, defaultdict] = {
-            cls: defaultdict(float) for cls in constants.classes
+            cls: defaultdict(float) for cls in classes
         }
 
         self.action_index2frame_index: dict[int, int] = dict()
@@ -19,13 +20,13 @@ class VideoTarget:
         )
         for action_index, (frame_index, action) in enumerate(actions_sorted_by_frame_index):
             self.action_index2frame_index[action_index] = frame_index
-            if action in constants.classes:
+            if action in classes:
                 self.frame_index2class_target[action][frame_index] = 1.0
 
     def target(self, frame_index: int) -> np.ndarray:
-        target = np.zeros(constants.num_classes, dtype=np.float32)
-        for cls in constants.classes:
-            target[constants.class2target[cls]] = self.frame_index2class_target[cls][frame_index]
+        target = np.zeros(self.num_classes, dtype=np.float32)
+        for cls in self.classes:
+            target[self.class2target[cls]] = self.frame_index2class_target[cls][frame_index]
         return target
 
     def targets(self, frame_indexes: list[int]) -> np.ndarray:
