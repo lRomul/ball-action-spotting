@@ -20,7 +20,7 @@ from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.ball_action.metrics import AveragePrecision, Accuracy
 from src.ball_action.target import MaxWindowTargetsProcessor
-from src.ball_action.argus_models import BallActionModel
+from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
 from src.ball_action import constants
