@@ -15,7 +15,7 @@ def get_game_videos_data(game: str,
     assert resolution in {"224p", "720p"}
 
     game_dir = constants.action_soccernet_dir / game
-    labels_json_path = game_dir / "Labels-ball.json"
+    labels_json_path = game_dir / "Labels-v2.json"
     with open(labels_json_path) as file:
         labels = json.load(file)
 
