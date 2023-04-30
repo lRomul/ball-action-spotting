@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 
 from src.evaluate import evaluate
-from src.ball_action import constants
+from src.action import constants
 
 
 def parse_arguments():
@@ -22,15 +22,15 @@ def evaluate_predictions(experiment: str, fold: int):
     print("Evaluate games", games)
 
     results = evaluate(
-        SoccerNet_path=constants.ball_action_soccernet_dir,
+        SoccerNet_path=constants.action_soccernet_dir,
         Predictions_path=str(predictions_path),
         list_games=games,
         prediction_file="results_spotting.json",
         version=2,
-        metric="at1",
+        metric="tight",
         num_classes=constants.num_classes,
-        label_files='Labels-ball.json',
-        dataset="Ball",
+        label_files='Labels-v2.json',
+        dataset="SoccerNet",
         framerate=25,
     )
 
