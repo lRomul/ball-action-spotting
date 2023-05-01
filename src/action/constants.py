@@ -9,14 +9,35 @@ visualizations_dir = action_dir / "visualizations"
 
 action_soccernet_dir = soccernet_dir / "action-spotting-2023"
 
-fold2games = {
-    0: getListGames(split="test", task="spotting", dataset="SoccerNet"),
-    1: getListGames(split="valid", task="spotting", dataset="SoccerNet"),
-    2: getListGames(split="train", task="spotting", dataset="SoccerNet"),
-}
-game2fold = {game: fold for fold, games in fold2games.items() for game in games}
-folds = sorted(fold2games.keys())
+val_games = [
+    'england_epl/2016-2017/2016-10-01 - 14-30 Swansea 1 - 2 Liverpool',
+    'england_epl/2016-2017/2017-04-09 - 18-00 Everton 4 - 2 Leicester',
+    'europe_uefa-champions-league/2016-2017/2016-09-28 - 21-45 Napoli 4 - 2 Benfica',
+    'europe_uefa-champions-league/2016-2017/2016-10-19 - 21-45 Paris SG 3 - 0 Basel',
+    'france_ligue-1/2016-2017/2016-08-21 - 21-45 Paris SG 3 - 0 Metz',
+    'france_ligue-1/2016-2017/2017-05-14 - 22-00 St Etienne 0 - 5 Paris SG',
+    'germany_bundesliga/2016-2017/2016-12-03 - 17-30 Dortmund 4 - 1 B. Monchengladbach',
+    'germany_bundesliga/2016-2017/2017-02-25 - 17-30 SC Freiburg 0 - 3 Dortmund',
+    'italy_serie-a/2016-2017/2016-08-20 - 19-00 AS Roma 4 - 0 Udinese',
+    'italy_serie-a/2016-2017/2017-05-06 - 19-00 Napoli 3 - 1 Cagliari',
+    'spain_laliga/2016-2017/2016-08-21 - 21-15 Real Sociedad 0 - 3 Real Madrid',
+    'spain_laliga/2016-2017/2017-05-14 - 21-00 Las Palmas 1 - 4 Barcelona',
+]
+train_games = sorted(
+    set(
+        getListGames(split="train", task="spotting", dataset="SoccerNet")
+        + getListGames(split="valid", task="spotting", dataset="SoccerNet")
+    )
+    - set(val_games)
+)
+test_games = getListGames(split="test", task="spotting", dataset="SoccerNet")
 challenge_games = getListGames(split="challenge", task="spotting", dataset="SoccerNet")
+split2games = {
+    "train": train_games,
+    "val": val_games,
+    "test": test_games,
+    "challenge": challenge_games,
+}
 
 classes = [
     "Penalty",

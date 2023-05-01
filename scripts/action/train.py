@@ -33,7 +33,6 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", required=True, type=str)
-    parser.add_argument("--folds", default="all", type=str)
     return parser.parse_args()
 
 
@@ -111,8 +110,7 @@ CONFIG = dict(
 )
 
 
-def train_ball_action(config: dict, save_dir: Path,
-                      train_games: list[str], val_games: list[str]):
+def train_action(config: dict, save_dir: Path):
     model = BallActionModel(config["argus_params"])
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
@@ -142,7 +140,7 @@ def train_ball_action(config: dict, save_dir: Path,
         checkpoint = Checkpoint
 
     device = torch.device(config["argus_params"]["device"][0])
-    train_data = get_videos_data(train_games)
+    train_data = get_videos_data(constants.train_games)
     videos_sampling_weights = get_videos_sampling_weights(
         train_data, **config["train_sampling_weights"],
     )
@@ -157,7 +155,7 @@ def train_ball_action(config: dict, save_dir: Path,
         frame_index_shaker=frame_index_shaker,
     )
     print(f"Train dataset len {len(train_dataset)}")
-    val_data = get_videos_data(val_games, add_empty_actions=True)
+    val_data = get_videos_data(constants.val_games, add_empty_actions=True)
     val_dataset = ValActionDataset(
         val_data,
         constants.classes,
@@ -236,19 +234,4 @@ if __name__ == "__main__":
     with open(experiments_dir / "config.json", "w") as outfile:
         json.dump(CONFIG, outfile, indent=4)
 
-    if args.folds == "all":
-        folds = constants.folds
-    else:
-        folds = [int(fold) for fold in args.folds.split(",")]
-
-    for fold in folds:
-        train_folds = list(set(constants.folds) - {fold})
-        val_games = constants.fold2games[fold]
-        train_games = []
-        for train_fold in train_folds:
-            train_games += constants.fold2games[train_fold]
-        fold_experiment_dir = experiments_dir / f"fold_{fold}"
-        print(f"Val fold: {fold}, train folds: {train_folds}")
-        print(f"Val games: {val_games}, train games: {train_games}")
-        print(f"Fold experiment dir: {fold_experiment_dir}")
-        train_ball_action(CONFIG, fold_experiment_dir, train_games, val_games)
+    train_action(CONFIG, experiments_dir)

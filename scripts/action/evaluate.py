@@ -10,15 +10,16 @@ from src.action import constants
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", required=True, type=str)
-    parser.add_argument("--folds", default="all", type=str)
+    parser.add_argument("--split", default="test", type=str)
     return parser.parse_args()
 
 
-def evaluate_predictions(experiment: str, fold: int):
-    print(f"Evaluate predictions: {experiment=}, {fold=}")
-    predictions_path = constants.predictions_dir / experiment / "cv" / f"fold_{fold}"
+def evaluate_predictions(experiment: str, split: str):
+    assert split in {"train", "val", "test"}
+    print(f"Evaluate predictions: {experiment=}, {split=}")
+    predictions_path = constants.predictions_dir / experiment / split
     print("Predictions path", predictions_path)
-    games = constants.fold2games[fold]
+    games = constants.split2games[split]
     print("Evaluate games", games)
 
     results = evaluate(
@@ -48,11 +49,4 @@ def evaluate_predictions(experiment: str, fold: int):
 
 if __name__ == "__main__":
     args = parse_arguments()
-
-    if args.folds == "all":
-        folds = constants.folds
-    else:
-        folds = [int(fold) for fold in args.folds.split(",")]
-
-    for fold in folds:
-        evaluate_predictions(args.experiment, fold)
+    evaluate_predictions(args.experiment, args.split)

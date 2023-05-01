@@ -15,15 +15,14 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
 
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
-TTA = True
+TTA = False
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", required=True, type=str)
-    parser.add_argument("--folds", default="all", type=str)
+    parser.add_argument("--split", default="test", type=str)
     parser.add_argument("--gpu_id", default=0, type=int)
-    parser.add_argument("--challenge", action="store_true")
     parser.add_argument("--use_saved_predictions", action="store_true")
     return parser.parse_args()
 
@@ -108,20 +107,15 @@ def predict_game(predictor: MultiDimStackerPredictor,
     prepare_game_spotting_results(half2class_actions, game, prediction_dir)
 
 
-def predict_fold(experiment: str, fold: int, gpu_id: int,
-                 challenge: bool, use_saved_predictions: bool):
-    print(f"Predict games: {experiment=}, {fold=}, {gpu_id=} {challenge=}")
-    experiment_dir = constants.experiments_dir / experiment / f"fold_{fold}"
+def predict_split(experiment: str, split: str, gpu_id: int, use_saved_predictions: bool):
+    assert split in {"train", "val", "test", "challenge"}
+    print(f"Predict games: {experiment=}, {split=}, {gpu_id=}")
+    experiment_dir = constants.experiments_dir / experiment
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
     predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
-    if challenge:
-        data_split = "challenge"
-        games = constants.challenge_games
-    else:
-        data_split = "cv"
-        games = constants.fold2games[fold]
-    prediction_dir = constants.predictions_dir / experiment / data_split / f"fold_{fold}"
+    games = constants.split2games[split]
+    prediction_dir = constants.predictions_dir / experiment / split
     if not prediction_dir.exists():
         prediction_dir.mkdir(parents=True, exist_ok=True)
     else:
@@ -132,12 +126,4 @@ def predict_fold(experiment: str, fold: int, gpu_id: int,
 
 if __name__ == "__main__":
     args = parse_arguments()
-
-    if args.folds == "all":
-        folds = constants.folds
-    else:
-        folds = [int(fold) for fold in args.folds.split(",")]
-
-    for fold in folds:
-        predict_fold(args.experiment, fold, args.gpu_id,
-                     args.challenge, args.use_saved_predictions)
+    predict_split(args.experiment, args.split, args.gpu_id, args.use_saved_predictions)
