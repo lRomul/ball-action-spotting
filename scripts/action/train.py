@@ -55,7 +55,7 @@ CONFIG = dict(
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
-    train_epoch_size=18000,
+    train_epoch_size=36000,
     train_sampling_weights=dict(
         action_window_size=9,
         action_prob=0.5,
@@ -63,7 +63,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[3, 15],
+    num_epochs=[1, 5],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -184,32 +184,36 @@ def train_action(config: dict, save_dir: Path):
         ]
 
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
-        if stage == "train":
+        if stage == "warmup":
+            callbacks += [
+                LambdaLR(lambda x: x / num_iterations,
+                         step_on_iteration=True),
+            ]
+
+            model.fit(train_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks)
+        elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
                 checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
-                    step_on_iteration=True
+                    step_on_iteration=True,
                 ),
             ]
-        elif stage == "warmup":
-            callbacks += [
-                LambdaLR(lambda x: x / num_iterations,
-                         step_on_iteration=True),
+
+            metrics = [
+                AveragePrecision(constants.classes),
+                Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
             ]
 
-        metrics = [
-            AveragePrecision(constants.classes),
-            Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
-        ]
-
-        model.fit(train_loader,
-                  val_loader=val_loader,
-                  num_epochs=num_epochs,
-                  callbacks=callbacks,
-                  metrics=metrics)
+            model.fit(train_loader,
+                      val_loader=val_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks,
+                      metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()

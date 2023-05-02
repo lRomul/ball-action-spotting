@@ -62,7 +62,7 @@ classes = [
     "Corner",
     "Yellow card",
     "Red card",
-    "Yellow->red card"
+    "Yellow->red card",
 ]
 
 num_classes = len(classes)
