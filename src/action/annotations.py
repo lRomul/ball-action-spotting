@@ -127,10 +127,10 @@ def get_video_sampling_weights(video_data: dict,
     weights = np.zeros(frame_count)
 
     for frame_index, action in video_data["frame_index2action"].items():
-        if frame_index < 0 or frame_index >= frame_count:
-            print(f"Skip action {action} on {frame_index} frame. "
+        if frame_index >= frame_count:
+            print(f"Clip action {action} on {frame_index} frame. "
                   f"Video: {video_data['video_path']}, {frame_count=}")
-            continue
+            frame_index = frame_count - 1
         weights[frame_index] = 1.0
 
     weights = maximum_filter(weights, size=action_window_size)
