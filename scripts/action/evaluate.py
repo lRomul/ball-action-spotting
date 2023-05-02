@@ -35,8 +35,8 @@ def evaluate_predictions(experiment: str, split: str):
         framerate=25,
     )
 
-    print("Average mAP@1: ", results["a_mAP"])
-    print("Average mAP@1 per class: ", results["a_mAP_per_class"])
+    print("Average mAP (tight): ", results["a_mAP"])
+    print("Average mAP (tight) per class: ", results["a_mAP_per_class"])
 
     evaluate_results_path = predictions_path / "evaluate_results.json"
     results = {key: (float(value) if np.isscalar(value) else list(value))
