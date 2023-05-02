@@ -122,46 +122,23 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
 
 def get_video_sampling_weights(video_data: dict,
                                action_window_size: int,
-                               action_prob: float,
-                               pred_experiment: str,
-                               clear_pred_window_size: int) -> np.ndarray:
-    assert clear_pred_window_size >= action_window_size
-    weights = np.zeros(video_data["frame_count"])
+                               action_prob: float) -> np.ndarray:
+    frame_count = video_data["frame_count"]
+    weights = np.zeros(frame_count)
 
     for frame_index, action in video_data["frame_index2action"].items():
+        if frame_index < 0 or frame_index >= frame_count:
+            print(f"Skip action {action} on {frame_index} frame. "
+                  f"Video: {video_data['video_path']}, {frame_count=}")
+            continue
         weights[frame_index] = 1.0
 
-    clear_pred_mask = maximum_filter(weights, size=clear_pred_window_size)
     weights = maximum_filter(weights, size=action_window_size)
-    clear_pred_mask -= weights
-    clear_pred_mask = clear_pred_mask == 1.0
     no_action_mask = weights == 0.0
     no_action_count = no_action_mask.sum()
 
     no_action_weights_sum = (1 - action_prob) / action_prob * weights.sum()
     weights[no_action_mask] = no_action_weights_sum / no_action_count
-
-    if pred_experiment:
-        game = video_data["game"]
-        half = video_data["half"]
-        prediction_path = (
-                constants.predictions_dir
-                / pred_experiment
-                / "cv"
-                / f"fold_{constants.game2fold[game]}"
-                / game
-                / f"{half}_raw_predictions.npz"
-        )
-        with np.load(str(prediction_path)) as npz_predictions:
-            frame_indexes = npz_predictions["frame_indexes"]
-            predictions = npz_predictions["raw_predictions"]
-
-        predictions = np.max(predictions, axis=1)
-        start = frame_indexes[0]
-        end = frame_indexes[-1] + 1
-        weights[start: end] = np.max([weights[start: end], predictions], axis=0)
-        weights[clear_pred_mask] = no_action_weights_sum / no_action_count
-        weights[no_action_mask] *= no_action_weights_sum / weights[no_action_mask].sum()
 
     weights /= weights.sum()
     return weights
@@ -169,13 +146,11 @@ def get_video_sampling_weights(video_data: dict,
 
 def get_videos_sampling_weights(videos_data: list[dict],
                                 action_window_size: int,
-                                action_prob: float,
-                                pred_experiment: str,
-                                clear_pred_window_size: int) -> list[np.ndarray]:
+                                action_prob: float) -> list[np.ndarray]:
     videos_sampling_weights = []
     for video_data in videos_data:
         video_sampling_weights = get_video_sampling_weights(
-            video_data, action_window_size, action_prob, pred_experiment, clear_pred_window_size
+            video_data, action_window_size, action_prob
         )
         videos_sampling_weights.append(video_sampling_weights)
     return videos_sampling_weights
