@@ -14,11 +14,11 @@ from argus.callbacks import (
 )
 
 from src.ball_action.annotations import get_videos_data, get_videos_sampling_weights
+from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
 from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.datasets import TrainActionDataset, ValActionDataset
 from src.metrics import AveragePrecision, Accuracy
-from src.data_loaders import RandomSeekDataLoader
 from src.target import MaxWindowTargetsProcessor
 from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
@@ -177,11 +177,10 @@ def train_ball_action(config: dict, save_dir: Path,
         num_opencv_workers=config["num_opencv_workers"],
         gpu_id=device.index,
     )
-    val_loader = RandomSeekDataLoader(
+    val_loader = SequentialDataLoader(
         val_dataset,
         batch_size=config["batch_size"],
-        num_nvenc_workers=config["num_nvenc_workers"],
-        num_opencv_workers=0,
+        frame_buffer_size=config["frame_stack_size"] * config["frame_stack_step"],
         gpu_id=device.index,
     )
 
