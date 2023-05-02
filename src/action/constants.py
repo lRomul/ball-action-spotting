@@ -74,7 +74,7 @@ halves = list(range(1, num_halves + 1))
 postprocess_params = {
     "gauss_sigma": 3.0,
     "height": 0.2,
-    "distance": 30,
+    "distance": 60,
 }
 
 video_fps = 25.0
