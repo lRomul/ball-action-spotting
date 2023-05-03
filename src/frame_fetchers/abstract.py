@@ -1,8 +1,12 @@
 import abc
+import logging
 from pathlib import Path
 from typing import Optional, Any
 
+import numpy as np
 import torch
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractFrameFetcher(metaclass=abc.ABCMeta):
@@ -20,19 +24,26 @@ class AbstractFrameFetcher(metaclass=abc.ABCMeta):
         return self._current_index
 
     def fetch_frame(self, index: Optional[int] = None) -> torch.Tensor:
-        if index is None:
-            if self._current_index < self.num_frames - 1:
-                frame = self._next_decode()
-                self._current_index += 1
+        try:
+            if index is None:
+                if self._current_index < self.num_frames - 1:
+                    frame = self._next_decode()
+                    self._current_index += 1
+                else:
+                    raise RuntimeError("End of frames")
             else:
-                raise RuntimeError("End of frames")
-        else:
-            if index < 0 or index >= self.num_frames:
-                raise RuntimeError(f"Frame index {index} out of range")
-            frame = self._seek_and_decode(index)
-            self._current_index = index
+                if index < 0 or index >= self.num_frames:
+                    raise RuntimeError(f"Frame index {index} out of range")
+                frame = self._seek_and_decode(index)
+                self._current_index = index
 
-        frame = self._convert(frame)
+            frame = self._convert(frame)
+        except BaseException as error:
+            logger.error(
+                f"Error while fetching frame {index} from '{str(self.video_path)}': {error}."
+                f"Replace by empty frame."
+            )
+            frame = np.zeros((self.height, self.width), dtype=np.uint8)
         return frame
 
     def fetch_frames(self, indexes: list[int]) -> torch.Tensor:

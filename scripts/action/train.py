@@ -27,7 +27,7 @@ from src.frames import get_frames_processor
 from src.action import constants
 from src.mixup import TimmMixup
 
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = ""
 
 
 def parse_arguments():
@@ -44,7 +44,7 @@ IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
-FRAME_STACK_STEP = 8
+FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
@@ -54,16 +54,16 @@ CONFIG = dict(
     ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
-    max_targets_window_size=60,
+    max_targets_window_size=15,
     train_epoch_size=36000,
     train_sampling_weights=dict(
-        action_window_size=36,
+        action_window_size=9,
         action_prob=0.5,
     ),
     metric_accuracy_threshold=0.5,
     num_nvenc_workers=3,
     num_opencv_workers=1,
-    num_epochs=[1, 5],
+    num_epochs=[2, 10],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {

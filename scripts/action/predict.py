@@ -11,7 +11,7 @@ from src.predictors import MultiDimStackerPredictor
 from src.frame_fetchers import NvDecFrameFetcher
 from src.action import constants
 
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = ""
 
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1

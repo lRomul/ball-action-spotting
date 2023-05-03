@@ -10,7 +10,7 @@ from src.frame_fetchers.abstract import AbstractFrameFetcher
 class OpencvFrameFetcher(AbstractFrameFetcher):
     def __init__(self, video_path: str | Path, gpu_id: int):
         super().__init__(video_path=video_path, gpu_id=gpu_id)
-        self.video = cv2.VideoCapture(str(self.video_path), cv2.CAP_FFMPEG)
+        self.video = cv2.VideoCapture(str(self.video_path))
         self.num_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
