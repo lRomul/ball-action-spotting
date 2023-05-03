@@ -5,6 +5,7 @@ from pathlib import Path
 
 import torch
 
+from argus import load_model
 from argus.callbacks import (
     Checkpoint,
     LoggingToFile,
@@ -20,6 +21,7 @@ from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.datasets import TrainActionDataset, ValActionDataset
 from src.metrics import AveragePrecision, Accuracy
 from src.target import MaxWindowTargetsProcessor
+from src.utils import load_weights_from_pretrain
 from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
@@ -72,7 +74,7 @@ CONFIG = dict(
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
             "index_2d_features": 4,
-            "pretrained": True,
+            "pretrained": False,
             "num_3d_blocks": 4,
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
@@ -105,6 +107,7 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
+    pretrain_model_path="/workdir/data/action/experiments/action_spotting_001/model-004-0.557904.pth",
 )
 
 
@@ -113,6 +116,12 @@ def train_ball_action(config: dict, save_dir: Path,
     model = BallActionModel(config["argus_params"])
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
+
+    if "pretrain_model_path" in config and config["pretrain_model_path"]:
+        pretrain_model = load_model(config["pretrain_model_path"],
+                                    device=config["argus_params"]["device"])
+        load_weights_from_pretrain(model.nn_module, pretrain_model.nn_module)
+        del pretrain_model
 
     augmentations = get_train_augmentations(config["image_size"])
     model.augmentations = augmentations

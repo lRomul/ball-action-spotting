@@ -8,6 +8,8 @@ import cv2  # type: ignore
 from scipy.ndimage import gaussian_filter
 from scipy.signal import find_peaks
 
+from torch import nn
+
 
 def get_video_info(video_path: str | Path) -> dict[str, int | float]:
     video = cv2.VideoCapture(str(video_path))
@@ -60,3 +62,22 @@ def post_processing(frame_indexes: list[int],
     confidences = predictions[peaks].tolist()
     action_frame_indexes = (peaks + frame_indexes[0]).tolist()
     return action_frame_indexes, confidences
+
+
+def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Module):
+    state_dict = nn_module.state_dict()
+    pretrain_state_dict = pretrain_nn_module.state_dict()
+
+    assert state_dict.keys() == pretrain_state_dict.keys()
+
+    load_state_dict = dict()
+    for name, pretrain_weights in pretrain_state_dict.items():
+        weights = state_dict[name]
+        if weights.shape == pretrain_weights.shape:
+            load_state_dict[name] = pretrain_weights
+        else:
+            print(f"Layer '{name}' has different shape in pretrain "
+                  f"{weights.shape} != {pretrain_weights.shape}. Skip loading.")
+            load_state_dict[name] = weights
+
+    nn_module.load_state_dict(load_state_dict)
