@@ -61,8 +61,8 @@ CONFIG = dict(
         action_prob=0.5,
     ),
     metric_accuracy_threshold=0.5,
-    num_nvdec_workers=4,
-    num_opencv_workers=0,
+    num_nvdec_workers=3,
+    num_opencv_workers=1,
     num_epochs=[2, 10],
     stages=["warmup", "train"],
     argus_params={
