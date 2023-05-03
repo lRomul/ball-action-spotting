@@ -45,22 +45,22 @@ class RandomSeekDataLoader(BaseDataLoader):
     def __init__(self,
                  dataset: ActionDataset,
                  batch_size: int,
-                 num_nvenc_workers: int = 1,
+                 num_nvdec_workers: int = 1,
                  num_opencv_workers: int = 0,
                  gpu_id: int = 0):
-        self.num_nvenc_workers = num_nvenc_workers
+        self.num_nvdec_workers = num_nvdec_workers
         self.num_opencv_workers = num_opencv_workers
         super().__init__(dataset=dataset, batch_size=batch_size, gpu_id=gpu_id)
 
     def init_workers_stream(self) -> RandomSeekWorkersStream:
-        nvenc_streams = [
+        nvdec_streams = [
             RandomSeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
                                    NvDecFrameFetcher, self.gpu_id)
-            for _ in range(self.num_nvenc_workers)
+            for _ in range(self.num_nvdec_workers)
         ]
         opencv_streams = [
             RandomSeekWorkerStream(self.dataset, self._index_queue, self._result_queue,
                                    OpencvFrameFetcher, self.gpu_id)
             for _ in range(self.num_opencv_workers)
         ]
-        return RandomSeekWorkersStream(nvenc_streams + opencv_streams)
+        return RandomSeekWorkersStream(nvdec_streams + opencv_streams)

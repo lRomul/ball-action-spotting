@@ -61,7 +61,7 @@ CONFIG = dict(
         clear_pred_window_size=27,
     ),
     metric_accuracy_threshold=0.5,
-    num_nvenc_workers=3,
+    num_nvdec_workers=3,
     num_opencv_workers=1,
     num_epochs=[12, 60],
     stages=["warmup", "train"],
@@ -173,7 +173,7 @@ def train_ball_action(config: dict, save_dir: Path,
     train_loader = RandomSeekDataLoader(
         train_dataset,
         batch_size=config["batch_size"],
-        num_nvenc_workers=config["num_nvenc_workers"],
+        num_nvdec_workers=config["num_nvdec_workers"],
         num_opencv_workers=config["num_opencv_workers"],
         gpu_id=device.index,
     )

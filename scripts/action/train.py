@@ -27,7 +27,7 @@ from src.frames import get_frames_processor
 from src.action import constants
 from src.mixup import TimmMixup
 
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = ""
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
 
 
 def parse_arguments():
@@ -61,8 +61,8 @@ CONFIG = dict(
         action_prob=0.5,
     ),
     metric_accuracy_threshold=0.5,
-    num_nvenc_workers=3,
-    num_opencv_workers=1,
+    num_nvdec_workers=4,
+    num_opencv_workers=0,
     num_epochs=[2, 10],
     stages=["warmup", "train"],
     argus_params={
@@ -165,14 +165,14 @@ def train_action(config: dict, save_dir: Path):
     train_loader = RandomSeekDataLoader(
         train_dataset,
         batch_size=config["batch_size"],
-        num_nvenc_workers=config["num_nvenc_workers"],
+        num_nvdec_workers=config["num_nvdec_workers"],
         num_opencv_workers=config["num_opencv_workers"],
         gpu_id=device.index,
     )
     val_loader = RandomSeekDataLoader(
         val_dataset,
         batch_size=config["batch_size"],
-        num_nvenc_workers=config["num_nvenc_workers"],
+        num_nvdec_workers=config["num_nvdec_workers"],
         num_opencv_workers=0,
         gpu_id=device.index,
     )

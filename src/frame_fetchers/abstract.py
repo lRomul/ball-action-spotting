@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 from typing import Optional, Any
 
-import numpy as np
 import torch
 
 logger = logging.getLogger(__name__)
@@ -43,7 +42,9 @@ class AbstractFrameFetcher(metaclass=abc.ABCMeta):
                 f"Error while fetching frame {index} from '{str(self.video_path)}': {error}."
                 f"Replace by empty frame."
             )
-            frame = np.zeros((self.height, self.width), dtype=np.uint8)
+            frame = torch.zeros(self.height, self.width,
+                                dtype=torch.uint8,
+                                device=f"cuda:{self.gpu_id}")
         return frame
 
     def fetch_frames(self, indexes: list[int]) -> torch.Tensor:
