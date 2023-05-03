@@ -49,7 +49,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.9995,
+    ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
@@ -63,7 +63,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[12, 60],
+    num_epochs=[6, 30],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -104,13 +104,6 @@ CONFIG = dict(
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
-    },
-    mixup_params={
-        "mixup_alpha": 1.,
-        "prob": 1.,
-        "mode": "elem",
-        "label_smoothing": 0.,
-        "num_classes": constants.num_classes,
     },
 )
 
@@ -191,32 +184,36 @@ def train_ball_action(config: dict, save_dir: Path,
         ]
 
         num_iterations = (len(train_dataset) // config["batch_size"]) * num_epochs
-        if stage == "train":
+        if stage == "warmup":
+            callbacks += [
+                LambdaLR(lambda x: x / num_iterations,
+                         step_on_iteration=True),
+            ]
+
+            model.fit(train_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks)
+        elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
                 checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
-                    step_on_iteration=True
+                    step_on_iteration=True,
                 ),
             ]
-        elif stage == "warmup":
-            callbacks += [
-                LambdaLR(lambda x: x / num_iterations,
-                         step_on_iteration=True),
+
+            metrics = [
+                AveragePrecision(constants.classes),
+                Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
             ]
 
-        metrics = [
-            AveragePrecision(constants.classes),
-            Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
-        ]
-
-        model.fit(train_loader,
-                  val_loader=val_loader,
-                  num_epochs=num_epochs,
-                  callbacks=callbacks,
-                  metrics=metrics)
+            model.fit(train_loader,
+                      val_loader=val_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks,
+                      metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()
