@@ -74,7 +74,7 @@ CONFIG = dict(
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
             "index_2d_features": 4,
-            "pretrained": False,
+            "pretrained": True,
             "num_3d_blocks": 4,
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
@@ -107,7 +107,7 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="/workdir/data/action/experiments/action_spotting_001/model-004-0.557904.pth",
+    pretrain_model_path="",
 )
 
 
