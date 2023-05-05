@@ -107,7 +107,7 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="/workdir/data/action/experiments/action_spotting_006/model-009-0.615811.pth",
+    pretrain_model_path="/workdir/data/action/experiments/action_merge_cards_001/model-009-0.707255.pth",
 )
 
 
