@@ -44,7 +44,11 @@ def get_game_videos_data(game: str,
             continue
         video_data = half2video_data[annotation["half"]]
         frame_index = round(float(annotation["position"]) * video_data["fps"] * 0.001)
-        video_data["frame_index2action"][frame_index] = annotation["label"]
+        label = annotation["label"]
+        if label in constants.card_classes:
+            video_data["frame_index2action"][frame_index] = "Card"
+        else:
+            video_data["frame_index2action"][frame_index] = label
 
     if add_empty_actions:
         for half in halves:
@@ -96,6 +100,7 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
 
     for half in half2class_actions.keys():
         for cls, (frame_indexes, confidences) in half2class_actions[half].items():
+            cls = "Yellow card" if cls == "Card" else cls
             for frame_index, confidence in zip(frame_indexes, confidences):
                 position = round(frame_index / constants.video_fps * 1000)
                 seconds = int(frame_index / constants.video_fps)

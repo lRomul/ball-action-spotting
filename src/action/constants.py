@@ -67,6 +67,9 @@ classes = [
     "Indirect free-kick",
     "Direct free-kick",
     "Corner",
+    "Card",
+]
+card_classes = [
     "Yellow card",
     "Red card",
     "Yellow->red card",
