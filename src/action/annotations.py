@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from scipy.ndimage import maximum_filter
@@ -127,7 +128,8 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
 
 def get_video_sampling_weights(video_data: dict,
                                action_window_size: int,
-                               action_prob: float) -> np.ndarray:
+                               action_prob: float,
+                               action_weights: Optional[dict] = None) -> np.ndarray:
     frame_count = video_data["frame_count"]
     weights = np.zeros(frame_count)
 
@@ -136,7 +138,8 @@ def get_video_sampling_weights(video_data: dict,
             print(f"Clip action {action} on {frame_index} frame. "
                   f"Video: {video_data['video_path']}, {frame_count=}")
             frame_index = frame_count - 1
-        weights[frame_index] = 1.0
+        value = action_weights[action] if action_weights is not None else 1.0
+        weights[frame_index] = max(value, weights[frame_index])
 
     weights = maximum_filter(weights, size=action_window_size)
     no_action_mask = weights == 0.0
@@ -151,11 +154,12 @@ def get_video_sampling_weights(video_data: dict,
 
 def get_videos_sampling_weights(videos_data: list[dict],
                                 action_window_size: int,
-                                action_prob: float) -> list[np.ndarray]:
+                                action_prob: float,
+                                action_weights: Optional[dict] = None) -> list[np.ndarray]:
     videos_sampling_weights = []
     for video_data in videos_data:
         video_sampling_weights = get_video_sampling_weights(
-            video_data, action_window_size, action_prob
+            video_data, action_window_size, action_prob, action_weights=action_weights
         )
         videos_sampling_weights.append(video_sampling_weights)
     return videos_sampling_weights
