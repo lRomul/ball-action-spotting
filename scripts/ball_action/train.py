@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[4, 20],
+    num_epochs=[6, 30],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -107,7 +107,7 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="/workdir/data/action/experiments/action_merge_cards_001/model-009-0.707255.pth",
+    pretrain_model_path="/workdir/data/action/experiments/action_sampling_weights_001/model-009-0.752933.pth",
 )
 
 
