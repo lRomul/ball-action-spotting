@@ -95,7 +95,7 @@ def prepare_game_spotting_results(half2class_actions: dict, game: str, predictio
                 position = round(frame_index / constants.video_fps * 1000)
                 seconds = int(frame_index / constants.video_fps)
                 prediction = {
-                    "gameTime": f"{half} - {seconds // 60}:{seconds % 60}",
+                    "gameTime": f"{half} - {seconds // 60:02}:{seconds % 60:02}",
                     "label": cls,
                     "position": str(position),
                     "half": str(half),
