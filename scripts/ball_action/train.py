@@ -85,7 +85,7 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": 0.4,
+            "alpha": 0.3,
             "gamma": 1.2,
             "reduction": "mean",
         }),
