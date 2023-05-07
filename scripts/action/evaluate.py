@@ -29,7 +29,7 @@ def evaluate_predictions(experiment: str, split: str):
         prediction_file="results_spotting.json",
         version=2,
         metric="tight",
-        num_classes=constants.num_classes,
+        num_classes=17,
         label_files='Labels-v2.json',
         dataset="SoccerNet",
         framerate=25,
