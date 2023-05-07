@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[6, 30],
+    num_epochs=[7, 35],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -74,7 +74,7 @@ CONFIG = dict(
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
             "index_2d_features": 4,
-            "pretrained": True,
+            "pretrained": False,
             "num_3d_blocks": 4,
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
@@ -107,7 +107,7 @@ CONFIG = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="",
+    pretrain_model_path="/workdir/data/action/experiments/action_sampling_weights_002/model-019-0.797827.pth",
 )
 
 
