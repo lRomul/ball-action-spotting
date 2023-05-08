@@ -51,7 +51,7 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.999,
+    ema_decay=0.9992,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[8, 40],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
