@@ -54,10 +54,10 @@ CONFIG = dict(
     ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
-    max_targets_window_size=15,
+    max_targets_window_size=23,
     train_epoch_size=36000,
     train_sampling_weights=dict(
-        action_window_size=9,
+        action_window_size=17,
         action_prob=0.5,
         action_weights={
             "Penalty": 0.149,
