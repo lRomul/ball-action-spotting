@@ -82,9 +82,9 @@ class2target: dict[str, int] = {cls: trg for trg, cls in enumerate(classes)}
 num_halves = 2
 halves = list(range(1, num_halves + 1))
 postprocess_params = {
-    "gauss_sigma": 3.0,
+    "gauss_sigma": 5.0,
     "height": 0.2,
-    "distance": 15,
+    "distance": 23,
 }
 
 video_fps = 25.0

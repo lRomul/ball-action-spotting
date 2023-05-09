@@ -51,13 +51,13 @@ CONFIG = dict(
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     use_ema=True,
-    ema_decay=0.9997,
+    ema_decay=0.9998,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
-    max_targets_window_size=15,
+    max_targets_window_size=23,
     train_epoch_size=36000,
     train_sampling_weights=dict(
-        action_window_size=9,
+        action_window_size=17,
         action_prob=0.5,
         action_weights={
             "Penalty": 0.244,
@@ -80,7 +80,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[6, 30],
+    num_epochs=[12, 60],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -100,7 +100,7 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": -1.0,
+            "alpha": 0.2,
             "gamma": 1.2,
             "reduction": "mean",
         }),
