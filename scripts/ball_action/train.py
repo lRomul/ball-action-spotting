@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[10, 50],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -106,6 +106,13 @@ CONFIG = dict(
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
+    },
+    mixup_params={
+        "mixup_alpha": 1.,
+        "prob": 0.75,
+        "mode": "elem",
+        "label_smoothing": 0.,
+        "num_classes": constants.num_classes,
     },
     pretrain_model_path="/workdir/data/action/experiments/action_sampling_weights_002/model-019-0.797827.pth",
 )
