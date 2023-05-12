@@ -9,6 +9,7 @@ from argus.engine import State
 from argus.loss import pytorch_losses
 from argus.utils import deep_to, deep_detach, deep_chunk
 
+from src.models.multidim_overlapper import MultiDimOverlapper
 from src.models.multidim_stacker import MultiDimStacker
 from src.losses import FocalLoss
 from src.mixup import TimmMixup
@@ -18,6 +19,7 @@ class BallActionModel(argus.Model):
     nn_module = {
         "timm": timm.create_model,
         "multidim_stacker": MultiDimStacker,
+        "multidim_overlapper": MultiDimOverlapper,
     }
     loss = {
         **pytorch_losses,

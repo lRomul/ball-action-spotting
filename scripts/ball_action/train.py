@@ -43,8 +43,8 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
-FRAME_STACK_SIZE = 15
-FRAME_STACK_STEP = 2
+FRAME_STACK_SIZE = 29
+FRAME_STACK_STEP = 1
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
@@ -68,11 +68,13 @@ CONFIG = dict(
     num_epochs=[7, 35],
     stages=["warmup", "train"],
     argus_params={
-        "nn_module": ("multidim_stacker", {
+        "nn_module": ("multidim_overlapper", {
             "model_name": "tf_efficientnetv2_b0",
             "num_classes": constants.num_classes,
             "num_frames": FRAME_STACK_SIZE,
-            "stack_size": 3,
+            "overlap_step": 5,
+            "encoder_2d_frames": 9,
+            "encoder_2d_step": 2,
             "index_2d_features": 4,
             "pretrained": False,
             "num_3d_blocks": 4,
@@ -104,10 +106,10 @@ CONFIG = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
+        "weights": [0.05, 0.9, 0.05],
         "prob": 0.25,
     },
-    pretrain_model_path="/workdir/data/action/experiments/action_sampling_weights_002/model-019-0.797827.pth",
+    pretrain_model_path="",
 )
 
 
