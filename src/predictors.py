@@ -17,7 +17,7 @@ def batched(iterable: Iterable, size: int):
         yield batch
 
 
-class MultiDimStackerPredictor:
+class MultiDimPredictor:
     def __init__(self, model_path: Path, device: str = "cuda:0", tta: bool = False):
         self.model = argus.load_model(model_path, device=device, optimizer=None, loss=None)
         self.model.eval()

@@ -6,8 +6,8 @@ import numpy as np
 
 from src.ball_action.annotations import raw_predictions_to_actions, prepare_game_spotting_results
 from src.utils import get_best_model_path, get_video_info
-from src.predictors import MultiDimStackerPredictor
 from src.frame_fetchers import NvDecFrameFetcher
+from src.predictors import MultiDimPredictor
 from src.ball_action import constants
 
 
@@ -26,7 +26,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_raw_predictions(predictor: MultiDimStackerPredictor,
+def get_raw_predictions(predictor: MultiDimPredictor,
                         video_path: Path,
                         frame_count: int) -> tuple[list[int], np.ndarray]:
     frame_fetcher = NvDecFrameFetcher(video_path, gpu_id=predictor.device.index)
@@ -55,7 +55,7 @@ def get_raw_predictions(predictor: MultiDimStackerPredictor,
     return frame_indexes, raw_predictions
 
 
-def predict_video(predictor: MultiDimStackerPredictor,
+def predict_video(predictor: MultiDimPredictor,
                   half: int,
                   game_dir: Path,
                   game_prediction_dir: Path,
@@ -87,7 +87,7 @@ def predict_video(predictor: MultiDimStackerPredictor,
     return class2actions
 
 
-def predict_game(predictor: MultiDimStackerPredictor,
+def predict_game(predictor: MultiDimPredictor,
                  game: str,
                  prediction_dir: Path,
                  use_saved_predictions: bool):
@@ -112,7 +112,7 @@ def predict_fold(experiment: str, fold: int, gpu_id: int,
     experiment_dir = constants.experiments_dir / experiment / f"fold_{fold}"
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
-    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
+    predictor = MultiDimPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
     if challenge:
         data_split = "challenge"
         games = constants.challenge_games
