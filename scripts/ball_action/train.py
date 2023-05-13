@@ -42,14 +42,14 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 3e-4
+BASE_LR = 1e-3
 FRAME_STACK_SIZE = 33
 FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
-    min_base_lr=BASE_LR * 0.01,
+    min_base_lr=BASE_LR * 0.05,
     use_ema=True,
     ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[3, 15],
+    num_epochs=[2, 7],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -89,7 +89,11 @@ CONFIG = dict(
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
+        "optimizer": ("SGD", {
+            "lr": get_lr(BASE_LR, BATCH_SIZE),
+            "momentum": 0.9,
+            "nesterov": True,
+        }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
