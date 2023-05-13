@@ -76,7 +76,7 @@ CONFIG = dict(
             "encoder_2d_frames": 9,
             "encoder_2d_step": 2,
             "index_2d_features": 4,
-            "pretrained": False,
+            "pretrained": True,
             "num_3d_blocks": 4,
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
