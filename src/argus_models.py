@@ -26,6 +26,10 @@ class BallActionModel(argus.Model):
     prediction_transform = nn.Sigmoid
 
     def __init__(self, params: dict):
+        self.freeze_conv2d_encoder = (
+            False if 'freeze_conv2d_encoder' not in params
+            else bool(params['freeze_conv2d_encoder'])
+        )
         super().__init__(params)
         self.iter_size = 1 if 'iter_size' not in self.params else int(self.params['iter_size'])
         self.amp = False if 'amp' not in self.params else bool(self.params['amp'])
@@ -101,3 +105,11 @@ class BallActionModel(argus.Model):
                 prediction = self.model_ema.ema(input)
             prediction = self.prediction_transform(prediction)
             return prediction
+
+    def build_nn_module(self, nn_module_meta, nn_module_params):
+        nn_module = super().build_nn_module(nn_module_meta, nn_module_params)
+        if self.freeze_conv2d_encoder:
+            self.logger.info("Freeze conv2d encoder")
+            for p in nn_module.conv2d_encoder.parameters():
+                p.requires_grad_(False)
+        return nn_module

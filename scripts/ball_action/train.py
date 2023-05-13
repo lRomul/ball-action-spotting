@@ -16,12 +16,12 @@ from argus.callbacks import (
 
 from src.ball_action.annotations import get_videos_data, get_videos_sampling_weights
 from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
+from src.utils import load_weights_from_pretrain, get_best_model_path
 from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.datasets import TrainActionDataset, ValActionDataset
 from src.metrics import AveragePrecision, Accuracy
 from src.target import MaxWindowTargetsProcessor
-from src.utils import load_weights_from_pretrain
 from src.argus_models import BallActionModel
 from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
@@ -101,13 +101,15 @@ CONFIG = dict(
             "pad_mode": "constant",
             "fill_value": 0,
         }),
+        "freeze_conv2d_encoder": True,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="/workdir/data/action/experiments/action_sampling_weights_002/model-019-0.797827.pth",
+    pretrain_model_path="",
+    pretrain_ball_experiment="ball_tuning_001",
 )
 
 
@@ -117,9 +119,20 @@ def train_ball_action(config: dict, save_dir: Path,
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
 
+    pretrain_model_path = ""
     if "pretrain_model_path" in config and config["pretrain_model_path"]:
-        pretrain_model = load_model(config["pretrain_model_path"],
-                                    device=config["argus_params"]["device"])
+        pretrain_model_path = config["pretrain_model_path"]
+    elif "pretrain_ball_experiment" in config and config["pretrain_ball_experiment"]:
+        pretrain_model_path = get_best_model_path(
+            constants.experiments_dir / config["pretrain_ball_experiment"] / f"fold_{fold}"
+        )
+
+    if pretrain_model_path:
+        print(f"Load pretrain model: {pretrain_model_path}")
+        pretrain_model = load_model(
+            pretrain_model_path,
+            device=config["argus_params"]["device"]
+        )
         load_weights_from_pretrain(model.nn_module, pretrain_model.nn_module)
         del pretrain_model
 
