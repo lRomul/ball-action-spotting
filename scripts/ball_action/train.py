@@ -43,7 +43,7 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
-FRAME_STACK_SIZE = 15
+FRAME_STACK_SIZE = 33
 FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[1, 5],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -211,10 +211,6 @@ def train_ball_action(config: dict, save_dir: Path,
                 LambdaLR(lambda x: x / num_iterations,
                          step_on_iteration=True),
             ]
-
-            model.fit(train_loader,
-                      num_epochs=num_epochs,
-                      callbacks=callbacks)
         elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
@@ -226,16 +222,16 @@ def train_ball_action(config: dict, save_dir: Path,
                 ),
             ]
 
-            metrics = [
-                AveragePrecision(constants.classes),
-                Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
-            ]
+        metrics = [
+            AveragePrecision(constants.classes),
+            Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
+        ]
 
-            model.fit(train_loader,
-                      val_loader=val_loader,
-                      num_epochs=num_epochs,
-                      callbacks=callbacks,
-                      metrics=metrics)
+        model.fit(train_loader,
+                  val_loader=val_loader,
+                  num_epochs=num_epochs,
+                  callbacks=callbacks,
+                  metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()
