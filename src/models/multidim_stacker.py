@@ -150,6 +150,7 @@ class MultiDimStacker(nn.Module):
                  drop_rate: bool = 0.,
                  drop_path_rate: float = 0.,
                  act_layer: str = "silu",
+                 multilayer_classifier=False,
                  **kwargs):
         super().__init__()
         assert num_frames > 0 and num_frames % 3 == 0
@@ -205,7 +206,15 @@ class MultiDimStacker(nn.Module):
         )
 
         self.global_pool = GeneralizedMeanPooling(3.0)
-        self.classifier = nn.Linear(self.num_features, num_classes, bias=True)
+        if multilayer_classifier:
+            self.classifier = nn.Sequential(
+                nn.Linear(self.num_features, self.num_features // 2, bias=False),
+                nn.BatchNorm1d(self.num_features // 2),
+                act_layer(),
+                nn.Linear(self.num_features // 2, num_classes, bias=True),
+            )
+        else:
+            self.classifier = nn.Linear(self.num_features, num_classes, bias=True)
 
     def forward_2d(self, frames):
         b, t, h, w = frames.shape  # (2, 15, 736, 1280)
