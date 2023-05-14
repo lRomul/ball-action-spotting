@@ -70,6 +70,9 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
 
     load_state_dict = dict()
     for name, pretrain_weights in pretrain_state_dict.items():
+        if name not in state_dict:
+            print(f"Skip pretrain layer '{name}'")
+            continue
         weights = state_dict[name]
         if weights.shape == pretrain_weights.shape:
             load_state_dict[name] = pretrain_weights
