@@ -59,8 +59,8 @@ CONFIG = dict(
     train_sampling_weights=dict(
         action_window_size=9,
         action_prob=0.5,
-        pred_experiment="sampling_weights_001",
-        clear_pred_window_size=27,
+        pred_experiment="",
+        clear_pred_window_size=9,
     ),
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
