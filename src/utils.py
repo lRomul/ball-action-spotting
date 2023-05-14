@@ -81,4 +81,4 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
                   f"{weights.shape} != {pretrain_weights.shape}. Skip loading.")
             load_state_dict[name] = weights
 
-    nn_module.load_state_dict(load_state_dict)
+    nn_module.load_state_dict(load_state_dict, strict=False)
