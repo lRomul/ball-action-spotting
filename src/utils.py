@@ -68,8 +68,6 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
     state_dict = nn_module.state_dict()
     pretrain_state_dict = pretrain_nn_module.state_dict()
 
-    assert state_dict.keys() == pretrain_state_dict.keys()
-
     load_state_dict = dict()
     for name, pretrain_weights in pretrain_state_dict.items():
         weights = state_dict[name]
