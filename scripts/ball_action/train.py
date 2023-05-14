@@ -43,7 +43,7 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 1e-3
-FRAME_STACK_SIZE = 15
+FRAME_STACK_SIZE = 33
 FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 7],
+    num_epochs=[2, 10],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
