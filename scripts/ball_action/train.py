@@ -40,7 +40,7 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
     return base_lr * (batch_size / base_batch_size)
 
 
-IMAGE_SIZE = (512, 288)
+IMAGE_SIZE = (864, 480)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
