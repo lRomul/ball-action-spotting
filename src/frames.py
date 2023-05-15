@@ -54,8 +54,26 @@ class PadNormalizeFramesProcessor(FramesProcessor):
         return frames
 
 
+class NormalizeResizeFramesProcessor(FramesProcessor):
+    def __init__(self,
+                 size: tuple[int, int],
+                 interpolation: str = "bicubic"):
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, frames: torch.Tensor) -> torch.Tensor:
+        frames = normalize_frames(frames)
+        frames = torch.nn.functional.interpolate(
+            frames.unsqueeze(0),
+            size=self.size[::-1],
+            mode=self.interpolation
+        )[0]
+        return frames
+
+
 _FRAME_PROCESSOR_REGISTRY: dict[str, Type[FramesProcessor]] = dict(
     pad_normalize=PadNormalizeFramesProcessor,
+    normalize_resize=NormalizeResizeFramesProcessor,
 )
 
 

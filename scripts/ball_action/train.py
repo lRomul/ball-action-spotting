@@ -40,16 +40,16 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
     return base_lr * (batch_size / base_batch_size)
 
 
-IMAGE_SIZE = (1280, 736)
+IMAGE_SIZE = (1024, 576)
 BATCH_SIZE = 4
-BASE_LR = 1e-3
-FRAME_STACK_SIZE = 33
+BASE_LR = 3e-4
+FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
-    min_base_lr=BASE_LR * 0.05,
+    min_base_lr=BASE_LR * 0.01,
     use_ema=True,
     ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
@@ -65,7 +65,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 7],
+    num_epochs=[6, 30],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -74,7 +74,7 @@ CONFIG = dict(
             "num_frames": FRAME_STACK_SIZE,
             "stack_size": 3,
             "index_2d_features": 4,
-            "pretrained": False,
+            "pretrained": True,
             "num_3d_blocks": 4,
             "num_3d_features": 192,
             "expansion_3d_ratio": 3,
@@ -85,14 +85,12 @@ CONFIG = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": 0.4,
+            "alpha": -1.0,
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("SGD", {
+        "optimizer": ("AdamW", {
             "lr": get_lr(BASE_LR, BATCH_SIZE),
-            "momentum": 0.9,
-            "nesterov": True,
         }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
@@ -100,12 +98,11 @@ CONFIG = dict(
         "frame_stack_step": FRAME_STACK_STEP,
         "amp": True,
         "iter_size": 1,
-        "frames_processor": ("pad_normalize", {
+        "frames_processor": ("normalize_resize", {
             "size": IMAGE_SIZE,
-            "pad_mode": "constant",
-            "fill_value": 0,
+            "interpolation": "bicubic",
         }),
-        "freeze_conv2d_encoder": True,
+        "freeze_conv2d_encoder": False,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
@@ -113,7 +110,7 @@ CONFIG = dict(
         "prob": 0.25,
     },
     pretrain_model_path="",
-    pretrain_ball_experiment="ball_tuning_001",
+    pretrain_ball_experiment="",
 )
 
 
