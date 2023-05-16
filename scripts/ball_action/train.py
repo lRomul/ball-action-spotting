@@ -28,6 +28,8 @@ from src.frames import get_frames_processor
 from src.ball_action import constants
 from src.mixup import TimmMixup
 
+from src.action.constants import experiments_dir as action_experiments_dir
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -43,13 +45,13 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 1e-3
-FRAME_STACK_SIZE = 33
+FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
-    min_base_lr=BASE_LR * 0.05,
+    min_base_lr=BASE_LR * 0.01,
     use_ema=True,
     ema_decay=0.999,
     frame_stack_size=FRAME_STACK_SIZE,
@@ -65,7 +67,7 @@ CONFIG = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[2, 7],
+    num_epochs=[7, 35],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -105,15 +107,15 @@ CONFIG = dict(
             "pad_mode": "constant",
             "fill_value": 0,
         }),
-        "freeze_conv2d_encoder": True,
+        "freeze_conv2d_encoder": False,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_model_path="",
-    pretrain_ball_experiment="ball_tuning_001",
+    pretrain_action_experiment="action_sampling_weights_002",
+    pretrain_ball_experiment="",
 )
 
 
@@ -123,15 +125,14 @@ def train_ball_action(config: dict, save_dir: Path,
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
 
-    pretrain_model_path = ""
-    if "pretrain_model_path" in config and config["pretrain_model_path"]:
-        pretrain_model_path = config["pretrain_model_path"]
-    elif "pretrain_ball_experiment" in config and config["pretrain_ball_experiment"]:
-        pretrain_model_path = get_best_model_path(
-            constants.experiments_dir / config["pretrain_ball_experiment"] / f"fold_{fold}"
-        )
+    pretrain_dir = ""
+    if config["pretrain_action_experiment"]:
+        pretrain_dir = action_experiments_dir / config["pretrain_action_experiment"]
+    elif config["pretrain_ball_experiment"]:
+        pretrain_dir = constants.experiments_dir / config["pretrain_ball_experiment"] / f"fold_{fold}"
 
-    if pretrain_model_path:
+    if pretrain_dir:
+        pretrain_model_path = get_best_model_path(pretrain_dir)
         print(f"Load pretrain model: {pretrain_model_path}")
         pretrain_model = load_model(
             pretrain_model_path,
