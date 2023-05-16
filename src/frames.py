@@ -62,12 +62,18 @@ class NormalizeResizeFramesProcessor(FramesProcessor):
         self.interpolation = interpolation
 
     def __call__(self, frames: torch.Tensor) -> torch.Tensor:
+        assert len(frames.shape) in {3, 4}
+        one_sample = len(frames.shape) == 3
+        if one_sample:
+            frames = frames.unsqueeze(0)
         frames = normalize_frames(frames)
         frames = torch.nn.functional.interpolate(
-            frames.unsqueeze(0),
+            frames,
             size=self.size[::-1],
-            mode=self.interpolation
-        )[0]
+            mode=self.interpolation,
+        )
+        if one_sample:
+            frames = frames.squeeze(0)
         return frames
 
 
