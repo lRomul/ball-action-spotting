@@ -4,6 +4,7 @@ import multiprocessing
 from pathlib import Path
 
 import torch
+import torch._dynamo
 
 from argus import load_model
 from argus.callbacks import (
@@ -114,6 +115,10 @@ CONFIG = dict(
     },
     pretrain_action_experiment="action_sampling_weights_002",
     pretrain_ball_experiment="",
+    torch_compile={
+        "backend": "inductor",
+        "mode": "default",
+    },
 )
 
 
@@ -162,6 +167,11 @@ def train_ball_action(config: dict, save_dir: Path,
         checkpoint = EmaCheckpoint
     else:
         checkpoint = Checkpoint
+
+    if "torch_compile" in config:
+        print("torch.compile:", config["torch_compile"])
+        torch._dynamo.reset()
+        model.nn_module = torch.compile(model.nn_module, **config["torch_compile"])
 
     device = torch.device(config["argus_params"]["device"][0])
     train_data = get_videos_data(train_games)
