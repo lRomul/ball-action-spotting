@@ -44,7 +44,7 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 3e-3
+BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
@@ -91,10 +91,8 @@ CONFIG = dict(
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("SGD", {
+        "optimizer": ("AdamW", {
             "lr": get_lr(BASE_LR, BATCH_SIZE),
-            "momentum": 0.9,
-            "nesterov": True,
         }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
