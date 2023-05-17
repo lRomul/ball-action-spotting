@@ -44,7 +44,7 @@ def get_lr(base_lr, batch_size, base_batch_size=4):
 
 IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
-BASE_LR = 1e-3
+BASE_LR = 3e-3
 FRAME_STACK_SIZE = 15
 FRAME_STACK_STEP = 2
 CONFIG = dict(
