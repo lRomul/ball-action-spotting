@@ -1,8 +1,9 @@
 from SoccerNet.utils import getListGames
 
-from src.constants import data_dir, soccernet_dir
+from src.constants import data_dir, soccernet_dir, configs_dir
 
 action_dir = data_dir / "action"
+configs_dir = configs_dir / "action"
 experiments_dir = action_dir / "experiments"
 predictions_dir = action_dir / "predictions"
 visualizations_dir = action_dir / "visualizations"

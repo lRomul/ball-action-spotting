@@ -81,3 +81,7 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
             load_state_dict[name] = weights
 
     nn_module.load_state_dict(load_state_dict)
+
+
+def get_lr(base_lr: float, batch_size: int, base_batch_size: int = 4) -> float:
+    return base_lr * (batch_size / base_batch_size)

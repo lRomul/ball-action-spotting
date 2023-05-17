@@ -1,7 +1,9 @@
 import json
 import argparse
+import importlib
 import multiprocessing
 from pathlib import Path
+from pprint import pprint
 
 import torch
 import torch._dynamo
@@ -15,8 +17,8 @@ from argus.callbacks import (
 )
 
 from src.ball_action.annotations import get_videos_data, get_videos_sampling_weights
+from src.utils import load_weights_from_pretrain, get_best_model_path, get_lr
 from src.data_loaders import RandomSeekDataLoader, SequentialDataLoader
-from src.utils import load_weights_from_pretrain, get_best_model_path
 from src.ball_action.augmentations import get_train_augmentations
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.datasets import TrainActionDataset, ValActionDataset
@@ -36,85 +38,6 @@ def parse_arguments():
     parser.add_argument("--experiment", required=True, type=str)
     parser.add_argument("--folds", default="all", type=str)
     return parser.parse_args()
-
-
-def get_lr(base_lr, batch_size, base_batch_size=4):
-    return base_lr * (batch_size / base_batch_size)
-
-
-IMAGE_SIZE = (1280, 736)
-BATCH_SIZE = 4
-BASE_LR = 3e-4
-FRAME_STACK_SIZE = 15
-CONFIG = dict(
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE,
-    base_lr=BASE_LR,
-    min_base_lr=BASE_LR * 0.01,
-    ema_decay=0.999,
-    max_targets_window_size=15,
-    train_epoch_size=6000,
-    train_sampling_weights=dict(
-        action_window_size=9,
-        action_prob=0.5,
-        pred_experiment="sampling_weights_001",
-        clear_pred_window_size=27,
-    ),
-    metric_accuracy_threshold=0.5,
-    num_nvdec_workers=3,
-    num_opencv_workers=1,
-    num_epochs=[7, 35],
-    stages=["warmup", "train"],
-    argus_params={
-        "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b0",
-            "num_classes": constants.num_classes,
-            "num_frames": FRAME_STACK_SIZE,
-            "stack_size": 3,
-            "index_2d_features": 4,
-            "pretrained": False,
-            "num_3d_blocks": 4,
-            "num_3d_features": 192,
-            "expansion_3d_ratio": 3,
-            "se_reduce_3d_ratio": 24,
-            "num_3d_stack_proj": 256,
-            "drop_rate": 0.2,
-            "drop_path_rate": 0.2,
-            "act_layer": "silu",
-        }),
-        "loss": ("focal_loss", {
-            "alpha": 0.4,
-            "gamma": 1.2,
-            "reduction": "mean",
-        }),
-        "optimizer": ("AdamW", {
-            "lr": get_lr(BASE_LR, BATCH_SIZE),
-        }),
-        "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
-        "image_size": IMAGE_SIZE,
-        "frame_stack_size": FRAME_STACK_SIZE,
-        "frame_stack_step": 2,
-        "amp": True,
-        "iter_size": 1,
-        "frames_processor": ("pad_normalize", {
-            "size": IMAGE_SIZE,
-            "pad_mode": "constant",
-            "fill_value": 0,
-        }),
-        "freeze_conv2d_encoder": False,
-    },
-    frame_index_shaker={
-        "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
-        "prob": 0.25,
-    },
-    pretrain_action_experiment="action_sampling_weights_002",
-    pretrain_ball_experiment="",
-    torch_compile={
-        "backend": "inductor",
-        "mode": "default",
-    },
-)
 
 
 def train_ball_action(config: dict, save_dir: Path,
@@ -245,6 +168,14 @@ def train_ball_action(config: dict, save_dir: Path,
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
     args = parse_arguments()
+    print("Experiment", args.experiment)
+
+    config_path = constants.configs_dir / f"{args.experiment}.py"
+    if not config_path.exists():
+        raise RuntimeError(f"Config '{config_path}' is not exists")
+
+    config = importlib.import_module(config_path).config
+    pprint("Experiment config", config)
 
     experiments_dir = constants.experiments_dir / args.experiment
     print("Experiment dir", experiments_dir)
@@ -253,12 +184,11 @@ if __name__ == "__main__":
     else:
         print(f"Folder {experiments_dir} already exists.")
 
-    with open(experiments_dir / "source.py", "w") as outfile:
+    with open(experiments_dir / "train.py", "w") as outfile:
         outfile.write(open(__file__).read())
 
-    print("Experiment config", CONFIG)
     with open(experiments_dir / "config.json", "w") as outfile:
-        json.dump(CONFIG, outfile, indent=4)
+        json.dump(config, outfile, indent=4)
 
     if args.folds == "all":
         folds = constants.folds
@@ -275,4 +205,4 @@ if __name__ == "__main__":
         print(f"Val fold: {fold}, train folds: {train_folds}")
         print(f"Val games: {val_games}, train games: {train_games}")
         print(f"Fold experiment dir: {fold_experiment_dir}")
-        train_ball_action(CONFIG, fold_experiment_dir, train_games, val_games)
+        train_ball_action(config, fold_experiment_dir, train_games, val_games)
