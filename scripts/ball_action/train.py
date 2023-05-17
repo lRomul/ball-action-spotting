@@ -2,6 +2,7 @@ import json
 import argparse
 import multiprocessing
 from pathlib import Path
+from pprint import pprint
 from importlib.machinery import SourceFileLoader
 
 import torch
@@ -167,21 +168,22 @@ def train_ball_action(config: dict, save_dir: Path,
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
     args = parse_arguments()
-    print("Experiment", args.experiment)
+    print("Experiment:", args.experiment)
 
     config_path = constants.configs_dir / f"{args.experiment}.py"
     if not config_path.exists():
         raise RuntimeError(f"Config '{config_path}' is not exists")
 
     config = SourceFileLoader(args.experiment, str(config_path)).load_module().config
-    print("Experiment config", config)
+    print("Experiment config:")
+    pprint(config)
 
     experiments_dir = constants.experiments_dir / args.experiment
-    print("Experiment dir", experiments_dir)
+    print("Experiment dir:", experiments_dir)
     if not experiments_dir.exists():
         experiments_dir.mkdir(parents=True, exist_ok=True)
     else:
-        print(f"Folder {experiments_dir} already exists.")
+        print(f"Folder '{experiments_dir}' already exists.")
 
     with open(experiments_dir / "train.py", "w") as outfile:
         outfile.write(open(__file__).read())
