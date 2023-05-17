@@ -9,7 +9,7 @@ import torch
 from torch import nn
 
 import timm
-from timm.models.layers import (
+from timm.layers import (
     DropPath,
     create_conv2d,
     get_act_layer,
