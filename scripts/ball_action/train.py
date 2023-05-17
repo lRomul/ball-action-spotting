@@ -214,6 +214,10 @@ def train_ball_action(config: dict, save_dir: Path,
                 LambdaLR(lambda x: x / num_iterations,
                          step_on_iteration=True),
             ]
+
+            model.fit(train_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks)
         elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
@@ -225,16 +229,16 @@ def train_ball_action(config: dict, save_dir: Path,
                 ),
             ]
 
-        metrics = [
-            AveragePrecision(constants.classes),
-            Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
-        ]
+            metrics = [
+                AveragePrecision(constants.classes),
+                Accuracy(constants.classes, threshold=config["metric_accuracy_threshold"]),
+            ]
 
-        model.fit(train_loader,
-                  val_loader=val_loader,
-                  num_epochs=num_epochs,
-                  callbacks=callbacks,
-                  metrics=metrics)
+            model.fit(train_loader,
+                      val_loader=val_loader,
+                      num_epochs=num_epochs,
+                      callbacks=callbacks,
+                      metrics=metrics)
 
     train_loader.stop_workers()
     val_loader.stop_workers()
