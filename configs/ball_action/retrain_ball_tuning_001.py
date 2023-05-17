@@ -51,7 +51,7 @@ config = dict(
         "optimizer": ("AdamW", {
             "lr": get_lr(base_lr, batch_size),
         }),
-        "device": "cuda:0",
+        "device": ["cuda:0"],
         "image_size": image_size,
         "frame_stack_size": frame_stack_size,
         "frame_stack_step": 2,

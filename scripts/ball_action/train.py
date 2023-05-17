@@ -1,9 +1,8 @@
 import json
 import argparse
-import importlib
 import multiprocessing
 from pathlib import Path
-from pprint import pprint
+from importlib.machinery import SourceFileLoader
 
 import torch
 import torch._dynamo
@@ -174,8 +173,8 @@ if __name__ == "__main__":
     if not config_path.exists():
         raise RuntimeError(f"Config '{config_path}' is not exists")
 
-    config = importlib.import_module(config_path).config
-    pprint("Experiment config", config)
+    config = SourceFileLoader(args.experiment, str(config_path)).load_module().config
+    print("Experiment config", config)
 
     experiments_dir = constants.experiments_dir / args.experiment
     print("Experiment dir", experiments_dir)
