@@ -5,9 +5,9 @@ import multiprocessing
 from pathlib import Path
 
 import torch
+import torch._dynamo
 
 from argus.callbacks import (
-    Checkpoint,
     LoggingToFile,
     LoggingToCSV,
     CosineAnnealingLR,
@@ -50,7 +50,6 @@ CONFIG = dict(
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
-    use_ema=True,
     ema_decay=0.9995,
     frame_stack_size=FRAME_STACK_SIZE,
     frame_stack_step=FRAME_STACK_STEP,
@@ -104,7 +103,9 @@ CONFIG = dict(
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("AdamW", {"lr": get_lr(BASE_LR, BATCH_SIZE)}),
+        "optimizer": ("AdamW", {
+            "lr": get_lr(BASE_LR, BATCH_SIZE),
+        }),
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
@@ -116,11 +117,16 @@ CONFIG = dict(
             "pad_mode": "constant",
             "fill_value": 0,
         }),
+        "freeze_conv2d_encoder": False,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
+    },
+    torch_compile={
+        "backend": "inductor",
+        "mode": "default",
     },
 )
 
@@ -146,13 +152,13 @@ def train_action(config: dict, save_dir: Path):
     )
     frame_index_shaker = FrameIndexShaker(**config["frame_index_shaker"])
 
-    if config["use_ema"]:
-        ema_decay = config["ema_decay"]
-        print(f"EMA decay: {ema_decay}")
-        model.model_ema = ModelEma(model.nn_module, decay=ema_decay)
-        checkpoint = EmaCheckpoint
-    else:
-        checkpoint = Checkpoint
+    print(f"EMA decay:", config["ema_decay"])
+    model.model_ema = ModelEma(model.nn_module, decay=config["ema_decay"])
+
+    if "torch_compile" in config:
+        print("torch.compile:", config["torch_compile"])
+        torch._dynamo.reset()
+        model.nn_module = torch.compile(model.nn_module, **config["torch_compile"])
 
     device = torch.device(config["argus_params"]["device"][0])
     train_data = get_videos_data(constants.train_games)
@@ -213,7 +219,7 @@ def train_action(config: dict, save_dir: Path):
         elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
-                checkpoint(save_dir, file_format=checkpoint_format, max_saves=1),
+                EmaCheckpoint(save_dir, file_format=checkpoint_format, max_saves=1),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
