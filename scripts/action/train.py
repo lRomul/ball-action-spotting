@@ -44,15 +44,12 @@ IMAGE_SIZE = (1280, 736)
 BATCH_SIZE = 4
 BASE_LR = 3e-4
 FRAME_STACK_SIZE = 15
-FRAME_STACK_STEP = 2
 CONFIG = dict(
     image_size=IMAGE_SIZE,
     batch_size=BATCH_SIZE,
     base_lr=BASE_LR,
     min_base_lr=BASE_LR * 0.01,
     ema_decay=0.9995,
-    frame_stack_size=FRAME_STACK_SIZE,
-    frame_stack_step=FRAME_STACK_STEP,
     max_targets_window_size=15,
     train_epoch_size=36000,
     train_sampling_weights=dict(
@@ -109,7 +106,7 @@ CONFIG = dict(
         "device": [f"cuda:{i}" for i in range(torch.cuda.device_count())],
         "image_size": IMAGE_SIZE,
         "frame_stack_size": FRAME_STACK_SIZE,
-        "frame_stack_step": FRAME_STACK_STEP,
+        "frame_stack_step": 2,
         "amp": True,
         "iter_size": 1,
         "frames_processor": ("pad_normalize", {
@@ -132,7 +129,8 @@ CONFIG = dict(
 
 
 def train_action(config: dict, save_dir: Path):
-    model = BallActionModel(config["argus_params"])
+    argus_params = config["argus_params"]
+    model = BallActionModel(argus_params)
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
 
@@ -145,10 +143,10 @@ def train_action(config: dict, save_dir: Path):
     targets_processor = MaxWindowTargetsProcessor(
         window_size=config["max_targets_window_size"]
     )
-    frames_processor = get_frames_processor(*config["argus_params"]["frames_processor"])
+    frames_processor = get_frames_processor(*argus_params["frames_processor"])
     indexes_generator = StackIndexesGenerator(
-        config["frame_stack_size"],
-        config["frame_stack_step"],
+        argus_params["frame_stack_size"],
+        argus_params["frame_stack_step"],
     )
     frame_index_shaker = FrameIndexShaker(**config["frame_index_shaker"])
 
@@ -160,7 +158,7 @@ def train_action(config: dict, save_dir: Path):
         torch._dynamo.reset()
         model.nn_module = torch.compile(model.nn_module, **config["torch_compile"])
 
-    device = torch.device(config["argus_params"]["device"][0])
+    device = torch.device(argus_params["device"][0])
     train_data = get_videos_data(constants.train_games)
     videos_sampling_weights = get_videos_sampling_weights(
         train_data, **config["train_sampling_weights"],
