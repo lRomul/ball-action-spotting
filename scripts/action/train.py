@@ -150,7 +150,7 @@ def train_action(config: dict, save_dir: Path):
     )
     frame_index_shaker = FrameIndexShaker(**config["frame_index_shaker"])
 
-    print(f"EMA decay:", config["ema_decay"])
+    print("EMA decay:", config["ema_decay"])
     model.model_ema = ModelEma(model.nn_module, decay=config["ema_decay"])
 
     if "torch_compile" in config:

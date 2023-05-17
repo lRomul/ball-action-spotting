@@ -63,7 +63,7 @@ def evaluate(SoccerNet_path, Predictions_path, list_games, prediction_file="resu
         # print(label_half_2)
 
         # infer name of the prediction_file
-        if prediction_file == None:
+        if prediction_file is None:
             if zipfile.is_zipfile(Predictions_path):
                 with zipfile.ZipFile(Predictions_path, "r") as z:
                     for filename in z.namelist():
@@ -134,8 +134,9 @@ def evaluate(SoccerNet_path, Predictions_path, list_games, prediction_file="resu
     elif metric == "at5":
         deltas = np.array([5])
         # Compute the performances
-    a_mAP, a_mAP_per_class, a_mAP_visible, a_mAP_per_class_visible, a_mAP_unshown, a_mAP_per_class_unshown = average_mAP(
-        targets_numpy, detections_numpy, closests_numpy, framerate, deltas=deltas)
+    a_mAP, a_mAP_per_class, a_mAP_visible, a_mAP_per_class_visible, a_mAP_unshown, a_mAP_per_class_unshown = (
+        average_mAP(targets_numpy, detections_numpy, closests_numpy, framerate, deltas=deltas)
+    )
 
     results = {
         "a_mAP": a_mAP,
