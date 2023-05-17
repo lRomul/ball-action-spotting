@@ -91,7 +91,7 @@ def predict_game(predictor: MultiDimStackerPredictor,
                  game: str,
                  prediction_dir: Path,
                  use_saved_predictions: bool):
-    game_dir = constants.ball_action_soccernet_dir / game
+    game_dir = constants.soccernet_dir / game
     game_prediction_dir = prediction_dir / game
     game_prediction_dir.mkdir(parents=True, exist_ok=True)
     print("Predict game:", game)

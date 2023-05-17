@@ -6,7 +6,7 @@ experiments_dir = ball_action_dir / "experiments"
 predictions_dir = ball_action_dir / "predictions"
 visualizations_dir = ball_action_dir / "visualizations"
 
-ball_action_soccernet_dir = soccernet_dir / "spotting-ball-2023"
+soccernet_dir = soccernet_dir / "spotting-ball-2023"
 
 fold_games = [
     "england_efl/2019-2020/2019-10-01 - Leeds United - West Bromwich",

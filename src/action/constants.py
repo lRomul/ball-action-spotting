@@ -8,7 +8,7 @@ experiments_dir = action_dir / "experiments"
 predictions_dir = action_dir / "predictions"
 visualizations_dir = action_dir / "visualizations"
 
-action_soccernet_dir = soccernet_dir / "action-spotting-2023"
+soccernet_dir = soccernet_dir / "action-spotting-2023"
 
 val_games = [
     'england_epl/2015-2016/2016-01-23 - 20-30 West Ham 2 - 2 Manchester City',

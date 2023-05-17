@@ -129,7 +129,7 @@ def visualize_game(game: str,
                    visualization_dir: Path,
                    gpu_id: int,
                    challenge: bool):
-    game_dir = constants.ball_action_soccernet_dir / game
+    game_dir = constants.soccernet_dir / game
     game_prediction_dir = prediction_dir / game
     game_visualization_dir = visualization_dir / game
     game_visualization_dir.mkdir(parents=True, exist_ok=True)

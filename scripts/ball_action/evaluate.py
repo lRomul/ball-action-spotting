@@ -22,7 +22,7 @@ def evaluate_predictions(experiment: str, fold: int):
     print("Evaluate games", games)
 
     results = evaluate(
-        SoccerNet_path=constants.ball_action_soccernet_dir,
+        SoccerNet_path=constants.soccernet_dir,
         Predictions_path=str(predictions_path),
         list_games=games,
         prediction_file="results_spotting.json",
