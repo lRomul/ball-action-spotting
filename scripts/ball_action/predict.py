@@ -14,6 +14,7 @@ from src.ball_action import constants
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
 TTA = True
+TORCH_COMPILE = True
 
 
 def parse_arguments():
@@ -112,7 +113,8 @@ def predict_fold(experiment: str, fold: int, gpu_id: int,
     experiment_dir = constants.experiments_dir / experiment / f"fold_{fold}"
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
-    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
+    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}",
+                                         tta=TTA, torch_compile=TORCH_COMPILE)
     if challenge:
         data_split = "challenge"
         games = constants.challenge_games
