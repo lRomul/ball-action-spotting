@@ -85,11 +85,12 @@ class BallActionModel(argus.Model):
         self.eval()
         with torch.no_grad():
             input, target = deep_to(batch, device=self.device, non_blocking=True)
-            if self.model_ema is None:
-                prediction = self.nn_module(input)
-            else:
-                prediction = self.model_ema.ema(input)
-            loss = self.loss(prediction, target)
+            with torch.cuda.amp.autocast(enabled=self.amp):
+                if self.model_ema is None:
+                    prediction = self.nn_module(input)
+                else:
+                    prediction = self.model_ema.ema(input)
+                loss = self.loss(prediction, target)
             prediction = self.prediction_transform(prediction)
             return {
                 'prediction': prediction,
