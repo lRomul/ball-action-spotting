@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     config = SourceFileLoader(args.experiment, str(config_path)).load_module().config
     print("Experiment config:")
-    pprint(config)
+    pprint(config, sort_dicts=False)
 
     experiments_dir = constants.experiments_dir / args.experiment
     print("Experiment dir:", experiments_dir)
