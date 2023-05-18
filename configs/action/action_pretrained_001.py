@@ -43,7 +43,7 @@ config = dict(
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b0",
+            "model_name": "tf_efficientnetv2_b0.in1k",
             "num_classes": constants.num_classes,
             "num_frames": frame_stack_size,
             "stack_size": 3,
@@ -59,7 +59,7 @@ config = dict(
             "act_layer": "silu",
         }),
         "loss": ("focal_loss", {
-            "alpha": -1.0,
+            "alpha": 0.4,
             "gamma": 1.2,
             "reduction": "mean",
         }),
