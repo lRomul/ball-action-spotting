@@ -19,11 +19,13 @@ class ActionDataset(metaclass=abc.ABCMeta):
             classes: list[str],
             indexes_generator: StackIndexesGenerator,
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
-            frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
+            frames_process_fn: Callable[[torch.Tensor, torch.dtype], torch.Tensor],
+            frames_dtype: torch.dtype = torch.float32,
     ):
         self.indexes_generator = indexes_generator
         self.frames_process_fn = frames_process_fn
         self.target_process_fn = target_process_fn
+        self.frames_dtype = frames_dtype
 
         self.videos_data = videos_data
         self.num_videos = len(self.videos_data)
@@ -68,7 +70,7 @@ class ActionDataset(metaclass=abc.ABCMeta):
         return frame_fetcher
 
     def process_frames_targets(self, frames: torch.Tensor, targets: np.ndarray):
-        input_tensor = self.frames_process_fn(frames)
+        input_tensor = self.frames_process_fn(frames, self.frames_dtype)
         target_tensor = self.target_process_fn(targets)
         return input_tensor, target_tensor
 
@@ -91,7 +93,8 @@ class TrainActionDataset(ActionDataset):
             epoch_size: int,
             videos_sampling_weights: list[np.ndarray],
             target_process_fn: Callable[[np.ndarray], torch.Tensor],
-            frames_process_fn: Callable[[torch.Tensor], torch.Tensor],
+            frames_process_fn: Callable[[torch.Tensor, torch.dtype], torch.Tensor],
+            frames_dtype: torch.dtype = torch.float32,
             frame_index_shaker: Optional[FrameIndexShaker] = None,
     ):
         super().__init__(
@@ -100,6 +103,7 @@ class TrainActionDataset(ActionDataset):
             indexes_generator=indexes_generator,
             target_process_fn=target_process_fn,
             frames_process_fn=frames_process_fn,
+            frames_dtype=frames_dtype,
         )
         self.epoch_size = epoch_size
         self.frame_index_shaker = frame_index_shaker

@@ -4,8 +4,9 @@ from typing import Type
 import torch
 
 
-def normalize_frames(frames: torch.Tensor) -> torch.Tensor:
-    frames = frames.to(torch.float32) / 255.0
+def normalize_frames(frames: torch.Tensor,
+                     dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    frames = frames.to(dtype=dtype) / 255.0
     return frames
 
 
@@ -33,7 +34,9 @@ def pad_to_frames(frames: torch.Tensor,
 
 class FramesProcessor(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __call__(self, frames: torch.Tensor) -> torch.Tensor:
+    def __call__(self,
+                 frames: torch.Tensor,
+                 dtype: torch.dtype = torch.float32) -> torch.Tensor:
         pass
 
 
@@ -46,11 +49,13 @@ class PadNormalizeFramesProcessor(FramesProcessor):
         self.pad_mode = pad_mode
         self.fill_value = fill_value
 
-    def __call__(self, frames: torch.Tensor) -> torch.Tensor:
+    def __call__(self,
+                 frames: torch.Tensor,
+                 dtype: torch.dtype = torch.float32) -> torch.Tensor:
         frames = pad_to_frames(frames, self.size,
                                pad_mode=self.pad_mode,
                                fill_value=self.fill_value)
-        frames = normalize_frames(frames)
+        frames = normalize_frames(frames, dtype=dtype)
         return frames
 
 

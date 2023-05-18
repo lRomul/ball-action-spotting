@@ -70,6 +70,7 @@ def train_action(config: dict, save_dir: Path):
         model.nn_module = torch.compile(model.nn_module, **config["torch_compile"])
 
     device = torch.device(argus_params["device"][0])
+    frames_dtype = torch.float16 if argus_params["amp"] else torch.float32
     train_data = get_videos_data(constants.train_games)
     videos_sampling_weights = get_videos_sampling_weights(
         train_data, **config["train_sampling_weights"],
@@ -82,6 +83,7 @@ def train_action(config: dict, save_dir: Path):
         videos_sampling_weights=videos_sampling_weights,
         target_process_fn=targets_processor,
         frames_process_fn=frames_processor,
+        frames_dtype=frames_dtype,
         frame_index_shaker=frame_index_shaker,
     )
     print(f"Train dataset len {len(train_dataset)}")
@@ -92,6 +94,7 @@ def train_action(config: dict, save_dir: Path):
         indexes_generator=indexes_generator,
         target_process_fn=targets_processor,
         frames_process_fn=frames_processor,
+        frames_dtype=frames_dtype,
     )
     print(f"Val dataset len {len(val_dataset)}")
     train_loader = RandomSeekDataLoader(
