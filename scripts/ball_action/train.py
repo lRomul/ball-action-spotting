@@ -79,10 +79,10 @@ def train_ball_action(config: dict, save_dir: Path,
     print("EMA decay:", config["ema_decay"])
     model.model_ema = ModelEma(model.nn_module, decay=config["ema_decay"])
 
-    if config["torch_compile"]:
-        print("Use torch.compile")
+    if "torch_compile" in config:
+        print("torch.compile:", config["torch_compile"])
         torch._dynamo.reset()
-        model.nn_module = torch.compile(model.nn_module, backend="inductor", mode="default")
+        model.nn_module = torch.compile(model.nn_module, **config["torch_compile"])
 
     device = torch.device(argus_params["device"][0])
     train_data = get_videos_data(train_games)

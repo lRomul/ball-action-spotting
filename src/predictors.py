@@ -18,15 +18,9 @@ def batched(iterable: Iterable, size: int):
 
 
 class MultiDimStackerPredictor:
-    def __init__(self,
-                 model_path: Path,
-                 device: str = "cuda:0",
-                 tta: bool = False,
-                 torch_compile: bool = False):
+    def __init__(self, model_path: Path, device: str = "cuda:0", tta: bool = False):
         self.model = argus.load_model(model_path, device=device, optimizer=None, loss=None)
         self.model.eval()
-        if torch_compile:
-            self.model.nn_module = torch.compile(self.model.nn_module, backend="inductor", mode="default")
         self.device = self.model.device
         self.tta = tta
         assert self.model.params["nn_module"][0] == "multidim_stacker"

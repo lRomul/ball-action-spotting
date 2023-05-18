@@ -84,5 +84,8 @@ config = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    torch_compile=True,
+    torch_compile={
+        "backend": "inductor",
+        "mode": "default",
+    },
 )

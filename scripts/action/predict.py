@@ -16,7 +16,6 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
 RESOLUTION = "720p"
 INDEX_SAVE_ZONE = 1
 TTA = False
-TORCH_COMPILE = True
 
 
 def parse_arguments():
@@ -114,8 +113,7 @@ def predict_split(experiment: str, split: str, gpu_id: int, use_saved_prediction
     experiment_dir = constants.experiments_dir / experiment
     model_path = get_best_model_path(experiment_dir)
     print("Model path:", model_path)
-    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}",
-                                         tta=TTA, torch_compile=TORCH_COMPILE)
+    predictor = MultiDimStackerPredictor(model_path, device=f"cuda:{gpu_id}", tta=TTA)
     games = constants.split2games[split]
     prediction_dir = constants.predictions_dir / experiment / split
     if not prediction_dir.exists():
