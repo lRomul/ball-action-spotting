@@ -43,6 +43,7 @@ class BallActionModel(argus.Model):
         self.optimizer.zero_grad()
 
         # Gradient accumulation
+        loss_value = 0
         for i, chunk_batch in enumerate(deep_chunk(batch, self.iter_size)):
             input, target = deep_to(chunk_batch, self.device, non_blocking=True)
             with torch.no_grad():
@@ -60,6 +61,8 @@ class BallActionModel(argus.Model):
             else:
                 loss.backward()
 
+            loss_value += loss.item()
+
         if self.amp:
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -75,7 +78,7 @@ class BallActionModel(argus.Model):
         return {
             'prediction': prediction,
             'target': target,
-            'loss': loss.item()
+            'loss': loss_value
         }
 
     def val_step(self, batch, state: State) -> dict:
