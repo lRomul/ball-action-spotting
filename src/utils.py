@@ -68,10 +68,11 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
     state_dict = nn_module.state_dict()
     pretrain_state_dict = pretrain_nn_module.state_dict()
 
-    assert state_dict.keys() == pretrain_state_dict.keys()
-
     load_state_dict = dict()
     for name, pretrain_weights in pretrain_state_dict.items():
+        if name not in state_dict:
+            print(f"Skip pretrain layer '{name}'")
+            continue
         weights = state_dict[name]
         if weights.shape == pretrain_weights.shape:
             load_state_dict[name] = pretrain_weights
@@ -80,7 +81,7 @@ def load_weights_from_pretrain(nn_module: nn.Module, pretrain_nn_module: nn.Modu
                   f"{weights.shape} != {pretrain_weights.shape}. Skip loading.")
             load_state_dict[name] = weights
 
-    nn_module.load_state_dict(load_state_dict)
+    nn_module.load_state_dict(load_state_dict, strict=False)
 
 
 def get_lr(base_lr: float, batch_size: int, base_batch_size: int = 4) -> float:
