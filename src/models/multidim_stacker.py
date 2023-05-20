@@ -73,7 +73,7 @@ class PositionalEncoding3D(nn.Module):
         emb[:, :, :, 2 * self.channels :] = emb_z
 
         self.cached_penc = emb[None, :, :, :, :orig_ch].repeat(batch_size, 1, 1, 1, 1)
-        return self.cached_penc
+        return tensor + self.cached_penc
 
 
 class BatchNormAct3d(nn.Module):
