@@ -69,8 +69,8 @@ class PositionalEncoding3D(nn.Module):
             tensor.type()
         )
         emb[:, :, :, : self.channels] = emb_x
-        emb[:, :, :, self.channels : 2 * self.channels] = emb_y
-        emb[:, :, :, 2 * self.channels :] = emb_z
+        emb[:, :, :, self.channels: 2 * self.channels] = emb_y
+        emb[:, :, :, 2 * self.channels:] = emb_z
 
         self.cached_penc = emb[None, :, :, :, :orig_ch].repeat(batch_size, 1, 1, 1, 1)
         return tensor + self.cached_penc
