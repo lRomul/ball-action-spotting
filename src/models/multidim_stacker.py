@@ -52,7 +52,7 @@ class PositionalEncoding3D(nn.Module):
             raise RuntimeError("The input tensor has to be 5d!")
 
         if self.cached_penc is not None and self.cached_penc.shape == tensor.shape:
-            return self.cached_penc
+            return tensor + self.cached_penc
 
         self.cached_penc = None
         batch_size, x, y, z, orig_ch = tensor.shape
