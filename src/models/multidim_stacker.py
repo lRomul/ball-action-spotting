@@ -4,6 +4,7 @@ from the video data.
 Original idea:
 https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932
 """
+import numpy as np
 
 import torch
 from torch import nn
@@ -17,37 +18,62 @@ from timm.layers import (
 )
 
 
-class GeneralizedMeanPooling(nn.Module):
-    """Applies a 2D power-average adaptive pooling over an input signal composed of several input planes.
-    The function computed is: :math:`f(X) = pow(sum(pow(X, p)), 1/p)`
-        - At p = infinity, one gets Max Pooling
-        - At p = 1, one gets Average Pooling
-    The output is of size H x W, for any input size.
-    The number of output features is equal to the number of input planes.
-    Source: https://github.com/feymanpriv/DELG/blob/master/model/resnet.py
-    Args:
-        output_size: the target output size of the image of the form H x W.
-                     Can be a tuple (H, W) or a single H for a square image H x H
-                     H and W can be either a ``int``, or ``None`` which means the size will
-                     be the same as that of the input.
+def get_emb(sin_inp):
     """
+    Source: https://github.com/tatp22/multidim-positional-encoding
+    Gets a base embedding for one dimension with sin and cos intertwined
+    """
+    emb = torch.stack((sin_inp.sin(), sin_inp.cos()), dim=-1)
+    return torch.flatten(emb, -2, -1)
 
-    def __init__(self, norm, output_size: int = 1, eps: float = 1e-6):
-        super(GeneralizedMeanPooling, self).__init__()
-        assert norm > 0
-        self.p = nn.Parameter(torch.ones(1) * norm)
-        self.output_size = output_size
-        self.eps = eps
 
-    def forward(self, x):
-        x = x.clamp(min=self.eps).pow(self.p)
-        x = torch.nn.functional.adaptive_avg_pool2d(x, self.output_size).pow(1. / self.p)
-        return x.view(x.size(0), -1)
+class PositionalEncoding3D(nn.Module):
+    def __init__(self, channels):
+        """
+        Source: https://github.com/tatp22/multidim-positional-encoding
+        :param channels: The last dimension of the tensor you want to apply pos emb to.
+        """
+        super(PositionalEncoding3D, self).__init__()
+        self.org_channels = channels
+        channels = int(np.ceil(channels / 6) * 2)
+        if channels % 2:
+            channels += 1
+        self.channels = channels
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, channels, 2).float() / channels))
+        self.register_buffer("inv_freq", inv_freq)
+        self.cached_penc = None
 
-    def __repr__(self):
-        return self.__class__.__name__ + '(' \
-               + str(self.p) + ', ' \
-               + 'output_size=' + str(self.output_size) + ')'
+    def forward(self, tensor):
+        """
+        :param tensor: A 5d tensor of size (batch_size, x, y, z, ch)
+        :return: Positional Encoding Matrix of size (batch_size, x, y, z, ch)
+        """
+        if len(tensor.shape) != 5:
+            raise RuntimeError("The input tensor has to be 5d!")
+
+        if self.cached_penc is not None and self.cached_penc.shape == tensor.shape:
+            return self.cached_penc
+
+        self.cached_penc = None
+        batch_size, x, y, z, orig_ch = tensor.shape
+        pos_x = torch.arange(x, device=tensor.device).type(self.inv_freq.type())
+        pos_y = torch.arange(y, device=tensor.device).type(self.inv_freq.type())
+        pos_z = torch.arange(z, device=tensor.device).type(self.inv_freq.type())
+        sin_inp_x = torch.einsum("i,j->ij", pos_x, self.inv_freq)
+        sin_inp_y = torch.einsum("i,j->ij", pos_y, self.inv_freq)
+        sin_inp_z = torch.einsum("i,j->ij", pos_z, self.inv_freq)
+        emb_x = get_emb(sin_inp_x).unsqueeze(1).unsqueeze(1)
+        emb_y = get_emb(sin_inp_y).unsqueeze(1)
+        emb_z = get_emb(sin_inp_z)
+        emb = torch.zeros((x, y, z, self.channels * 3), device=tensor.device).type(
+            tensor.type()
+        )
+        emb[:, :, :, : self.channels] = emb_x
+        emb[:, :, :, self.channels : 2 * self.channels] = emb_y
+        emb[:, :, :, 2 * self.channels :] = emb_z
+
+        self.cached_penc = emb[None, :, :, :, :orig_ch].repeat(batch_size, 1, 1, 1, 1)
+        return self.cached_penc
 
 
 class BatchNormAct3d(nn.Module):
@@ -134,6 +160,39 @@ class InvertedResidual3d(nn.Module):
         return x
 
 
+class GeneralizedMeanPooling(nn.Module):
+    """Applies a 2D power-average adaptive pooling over an input signal composed of several input planes.
+    The function computed is: :math:`f(X) = pow(sum(pow(X, p)), 1/p)`
+        - At p = infinity, one gets Max Pooling
+        - At p = 1, one gets Average Pooling
+    The output is of size H x W, for any input size.
+    The number of output features is equal to the number of input planes.
+    Source: https://github.com/feymanpriv/DELG/blob/master/model/resnet.py
+    Args:
+        output_size: the target output size of the image of the form H x W.
+                     Can be a tuple (H, W) or a single H for a square image H x H
+                     H and W can be either a ``int``, or ``None`` which means the size will
+                     be the same as that of the input.
+    """
+
+    def __init__(self, norm, output_size: int = 1, eps: float = 1e-6):
+        super(GeneralizedMeanPooling, self).__init__()
+        assert norm > 0
+        self.p = nn.Parameter(torch.ones(1) * norm)
+        self.output_size = output_size
+        self.eps = eps
+
+    def forward(self, x):
+        x = x.clamp(min=self.eps).pow(self.p)
+        x = torch.nn.functional.adaptive_avg_pool2d(x, self.output_size).pow(1. / self.p)
+        return x.view(x.size(0), -1)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' \
+               + str(self.p) + ', ' \
+               + 'output_size=' + str(self.output_size) + ')'
+
+
 class MultiDimStacker(nn.Module):
     def __init__(self,
                  model_name: str,
@@ -150,6 +209,7 @@ class MultiDimStacker(nn.Module):
                  drop_rate: bool = 0.,
                  drop_path_rate: float = 0.,
                  act_layer: str = "silu",
+                 positional_encoding: bool = False,
                  **kwargs):
         super().__init__()
         assert num_frames > 0 and num_frames % 3 == 0
@@ -159,6 +219,7 @@ class MultiDimStacker(nn.Module):
         self.num_stacks = num_frames // stack_size
         self.num_features = num_3d_stack_proj * self.num_stacks
         self.drop_rate = drop_rate
+        self.positional_encoding = positional_encoding
 
         act_layer = get_act_layer(act_layer)
         norm_act_layer = get_norm_act_layer(nn.BatchNorm2d, act_layer)
@@ -183,6 +244,9 @@ class MultiDimStacker(nn.Module):
             ),
             norm_act_layer(num_3d_features, inplace=True)
         )
+
+        if self.positional_encoding:
+            self.positional_encoding = PositionalEncoding3D(num_3d_features)
 
         self.conv3d_encoder = nn.Sequential(*[
             InvertedResidual3d(
@@ -221,12 +285,17 @@ class MultiDimStacker(nn.Module):
     def forward_3d(self, x):
         b, t, c, h, w = x.shape  # (2, 5, 192, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
-        x = x.transpose(1, 2)  # (2, 192, 5, 23, 40)
+        if self.positional_encoding:
+            x = x.permute(0, 1, 3, 4, 2)  # (2, 5, 23, 40, 192)
+            x = self.positional_encoding(x)  # (2, 5, 23, 40, 192)
+            x = x.permute(0, 4, 1, 2, 3)  # (2, 192, 5, 23, 40)
+        else:
+            x = x.transpose(1, 2)  # (2, 192, 5, 23, 40)
         x = self.conv3d_encoder(x)  # (2, 192, 5, 23, 40)
         x = x.transpose(1, 2)  # (2, 5, 192, 23, 40)
         x = x.reshape(b * t, c, h, w)  # (10, 192, 23, 40)
         x = self.conv3d_projection(x)  # (10, 256, 23, 40)
-        x = x.view(b, self.num_features, h, w)  # (2, 1280, 23, 40)
+        x = x.reshape(b, self.num_features, h, w)  # (2, 1280, 23, 40)
         return x
 
     def forward_head(self, x):
