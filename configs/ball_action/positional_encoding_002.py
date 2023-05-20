@@ -63,15 +63,15 @@ config = dict(
             "pad_mode": "constant",
             "fill_value": 0,
         }),
-        "freeze_conv2d_encoder": False,
+        "freeze_conv2d_encoder": True,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_sampling_weights_002",
-    pretrain_ball_experiment="",
+    pretrain_action_experiment="",
+    pretrain_ball_experiment="ball_tuning_001",
     torch_compile={
         "backend": "inductor",
         "mode": "default",
