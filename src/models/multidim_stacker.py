@@ -207,35 +207,27 @@ class MultiDimStacker(nn.Module):
         self.global_pool = GeneralizedMeanPooling(3.0)
         self.classifier = nn.Linear(self.num_features, num_classes, bias=True)
 
-    def forward_2d(self, frames):
-        b, t, h, w = frames.shape  # (2, 15, 736, 1280)
+    def forward_2d(self, x):
+        b, t, h, w = x.shape  # (2, 15, 736, 1280)
         assert t % self.stack_size == 0
         num_stacks = t // self.stack_size
-        stacked_frames = frames.view(
-            b * num_stacks, self.stack_size, h, w
-        )  # (10, 3, 736, 1280)
-        conv2d_features = self.conv2d_encoder(
-            stacked_frames
-        )[-1]  # (10, 192, 23, 40)
-        conv2d_features = self.conv2d_projection(conv2d_features)  # (10, 192, 23, 40)
-        _, _, h, w = conv2d_features.shape
-        conv2d_features = conv2d_features.contiguous().view(
-            b, num_stacks, self.num_3d_features, h, w
-        )  # (2, 5, 192, 23, 40)
-        return conv2d_features
+        x = x.view(b * num_stacks, self.stack_size, h, w)  # (10, 3, 736, 1280)
+        x = self.conv2d_encoder(x)[-1]  # (10, 192, 23, 40)
+        x = self.conv2d_projection(x).contiguous()  # (10, 192, 23, 40)
+        _, _, h, w = x.shape
+        x = x.view(b, num_stacks, self.num_3d_features, h, w)  # (2, 5, 192, 23, 40)
+        return x
 
-    def forward_3d(self, conv2d_features):
-        b, t, c, h, w = conv2d_features.shape  # (2, 5, 192, 23, 40)
+    def forward_3d(self, x):
+        b, t, c, h, w = x.shape  # (2, 5, 192, 23, 40)
         assert c == self.num_3d_features and t == self.num_stacks
-        conv2d_features = conv2d_features.transpose(1, 2)  # (2, 192, 5, 23, 40)
-        conv3d_features = self.conv3d_encoder(conv2d_features)  # (2, 192, 5, 23, 40)
-        conv3d_features = conv3d_features.transpose(1, 2)  # (2, 5, 192, 23, 40)
-        conv3d_features = conv3d_features.reshape(b * t, c, h, w)  # (10, 192, 23, 40)
-        conv3d_features = self.conv3d_projection(conv3d_features)  # (10, 256, 23, 40)
-        conv3d_features = conv3d_features.view(
-            b, self.num_features, h, w
-        )  # (2, 1280, 23, 40)
-        return conv3d_features
+        x = x.transpose(1, 2)  # (2, 192, 5, 23, 40)
+        x = self.conv3d_encoder(x)  # (2, 192, 5, 23, 40)
+        x = x.transpose(1, 2)  # (2, 5, 192, 23, 40)
+        x = x.reshape(b * t, c, h, w)  # (10, 192, 23, 40)
+        x = self.conv3d_projection(x)  # (10, 256, 23, 40)
+        x = x.view(b, self.num_features, h, w)  # (2, 1280, 23, 40)
+        return x
 
     def forward_head(self, x):
         x = self.global_pool(x)
