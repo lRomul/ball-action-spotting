@@ -13,7 +13,7 @@ config = dict(
     base_lr=base_lr,
     min_base_lr=base_lr * 0.01,
     ema_decay=0.999,
-    max_targets_window_size=21,
+    max_targets_window_size=15,
     train_epoch_size=6000,
     train_sampling_weights=dict(
         action_window_size=9,
@@ -24,7 +24,7 @@ config = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[5, 25],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
