@@ -5,7 +5,7 @@ from src.utils import get_lr
 image_size = (1280, 736)
 batch_size = 4
 base_lr = 1e-3
-frame_stack_size = 33
+frame_stack_size = 27
 
 config = dict(
     image_size=image_size,
@@ -13,7 +13,7 @@ config = dict(
     base_lr=base_lr,
     min_base_lr=base_lr * 0.05,
     ema_decay=0.9995,
-    max_targets_window_size=41,
+    max_targets_window_size=29,
     train_epoch_size=36000,
     train_sampling_weights=dict(
         action_window_size=17,
