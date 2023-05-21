@@ -9,6 +9,7 @@ from importlib.machinery import SourceFileLoader
 import torch
 import torch._dynamo
 
+from argus import load_model
 from argus.callbacks import (
     LoggingToFile,
     LoggingToCSV,
@@ -17,6 +18,7 @@ from argus.callbacks import (
 )
 
 from src.action.annotations import get_videos_data, get_videos_sampling_weights
+from src.utils import load_weights_from_pretrain, get_best_model_path, get_lr
 from src.indexes import StackIndexesGenerator, FrameIndexShaker
 from src.datasets import TrainActionDataset, ValActionDataset
 from src.action.augmentations import get_train_augmentations
@@ -28,7 +30,6 @@ from src.ema import ModelEma, EmaCheckpoint
 from src.frames import get_frames_processor
 from src.action import constants
 from src.mixup import TimmMixup
-from src.utils import get_lr
 
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "video_codec;h264"
 
@@ -44,6 +45,14 @@ def train_action(config: dict, save_dir: Path):
     model = BallActionModel(argus_params)
     if "pretrained" in model.params["nn_module"][1]:
         model.params["nn_module"][1]["pretrained"] = False
+
+    if "pretrain_action_experiment" in config and config["pretrain_action_experiment"]:
+        pretrain_dir = constants.experiments_dir / config["pretrain_action_experiment"]
+        pretrain_model_path = get_best_model_path(pretrain_dir)
+        print(f"Load pretrain model: {pretrain_model_path}")
+        pretrain_model = load_model(pretrain_model_path, device=argus_params["device"])
+        load_weights_from_pretrain(model.nn_module, pretrain_model.nn_module)
+        del pretrain_model
 
     augmentations = get_train_augmentations(config["image_size"])
     model.augmentations = augmentations
