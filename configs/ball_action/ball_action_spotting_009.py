@@ -5,7 +5,7 @@ from src.utils import get_lr
 image_size = (1280, 736)
 batch_size = 4
 base_lr = 3e-4
-frame_stack_size = 27
+frame_stack_size = 15
 
 config = dict(
     image_size=image_size,
@@ -39,7 +39,7 @@ config = dict(
             "expansion_3d_ratio": 3,
             "se_reduce_3d_ratio": 24,
             "num_3d_stack_proj": 256,
-            "drop_rate": 0.5,
+            "drop_rate": 0.2,
             "drop_path_rate": 0.2,
             "act_layer": "silu",
         }),
@@ -56,7 +56,7 @@ config = dict(
         "frame_stack_size": frame_stack_size,
         "frame_stack_step": 2,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 1,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
@@ -66,10 +66,10 @@ config = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
+        "weights": [0.1, 0.8, 0.1],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_pretrained_002",
+    pretrain_action_experiment="action_sampling_weights_002",
     pretrain_ball_experiment="",
     torch_compile={
         "backend": "inductor",
