@@ -3,7 +3,7 @@ from src.utils import get_lr
 
 
 image_size = (1280, 736)
-batch_size = 4
+batch_size = 16
 base_lr = 3e-4
 frame_stack_size = 15
 
@@ -17,7 +17,7 @@ config = dict(
     train_epoch_size=36000,
     train_sampling_weights=dict(
         action_window_size=9,
-        action_prob=0.5,
+        action_prob=0.75,
         action_weights={
             "Penalty": 0.244,
             "Kick-off": 0.197,
@@ -43,7 +43,7 @@ config = dict(
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b1.in1k",
+            "model_name": "tf_efficientnetv2_b0.in1k",
             "num_classes": constants.num_classes,
             "num_frames": frame_stack_size,
             "stack_size": 3,
@@ -71,7 +71,7 @@ config = dict(
         "frame_stack_size": frame_stack_size,
         "frame_stack_step": 2,
         "amp": True,
-        "iter_size": 1,
+        "iter_size": 4,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
