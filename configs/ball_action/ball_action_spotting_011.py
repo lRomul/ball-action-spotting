@@ -69,7 +69,7 @@ config = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_sampling_weights_002",
+    pretrain_action_experiment="",
     pretrain_ball_experiment="",
     torch_compile={
         "backend": "inductor",
