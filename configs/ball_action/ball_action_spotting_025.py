@@ -56,7 +56,7 @@ config = dict(
         "frame_stack_size": frame_stack_size,
         "frame_stack_step": 1,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 4,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
