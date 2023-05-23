@@ -4,7 +4,7 @@ from src.utils import get_lr
 
 image_size = (1280, 736)
 batch_size = 16
-base_lr = 3e-4
+base_lr = 0.00015
 frame_stack_size = 15
 
 config = dict(
@@ -17,7 +17,7 @@ config = dict(
     train_epoch_size=36000,
     train_sampling_weights=dict(
         action_window_size=9,
-        action_prob=0.75,
+        action_prob=0.5,
         action_weights={
             "Penalty": 0.244,
             "Kick-off": 0.197,
