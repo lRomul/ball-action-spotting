@@ -3,16 +3,16 @@ from src.utils import get_lr
 
 
 image_size = (1280, 736)
-batch_size = 8
-base_lr = 2e-4
-frame_stack_size = 15
+batch_size = 4
+base_lr = 3e-4
+frame_stack_size = 27
 
 config = dict(
     image_size=image_size,
     batch_size=batch_size,
     base_lr=base_lr,
     min_base_lr=base_lr * 0.01,
-    ema_decay=0.998,
+    ema_decay=0.999,
     max_targets_window_size=15,
     train_epoch_size=6000,
     train_sampling_weights=dict(
@@ -54,7 +54,7 @@ config = dict(
         "device": ["cuda:0"],
         "image_size": image_size,
         "frame_stack_size": frame_stack_size,
-        "frame_stack_step": 2,
+        "frame_stack_step": 1,
         "amp": True,
         "iter_size": 2,
         "frames_processor": ("pad_normalize", {
@@ -66,10 +66,10 @@ config = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
+        "weights": [0.1, 0.8, 0.1],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_sampling_weights_002",
+    pretrain_action_experiment="action_pretrained_002",
     pretrain_ball_experiment="",
     torch_compile={
         "backend": "inductor",
