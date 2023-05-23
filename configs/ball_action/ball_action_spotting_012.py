@@ -3,16 +3,16 @@ from src.utils import get_lr
 
 
 image_size = (1280, 736)
-batch_size = 4
+batch_size = 16
 base_lr = 3e-4
-frame_stack_size = 27
+frame_stack_size = 15
 
 config = dict(
     image_size=image_size,
     batch_size=batch_size,
     base_lr=base_lr,
     min_base_lr=base_lr * 0.01,
-    ema_decay=0.999,
+    ema_decay=0.996,
     max_targets_window_size=15,
     train_epoch_size=6000,
     train_sampling_weights=dict(
@@ -56,7 +56,7 @@ config = dict(
         "frame_stack_size": frame_stack_size,
         "frame_stack_step": 2,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 4,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
@@ -69,7 +69,7 @@ config = dict(
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_pretrained_002",
+    pretrain_action_experiment="action_sampling_weights_002",
     pretrain_ball_experiment="",
     torch_compile={
         "backend": "inductor",
