@@ -3,7 +3,7 @@ from src.utils import get_lr
 
 
 image_size = (1280, 736)
-batch_size = 16
+batch_size = 4
 base_lr = 3e-4
 frame_stack_size = 15
 
@@ -12,8 +12,8 @@ config = dict(
     batch_size=batch_size,
     base_lr=base_lr,
     min_base_lr=base_lr * 0.01,
-    ema_decay=0.996,
-    max_targets_window_size=15,
+    ema_decay=0.999,
+    max_targets_window_size=11,
     train_epoch_size=6000,
     train_sampling_weights=dict(
         action_window_size=9,
@@ -54,9 +54,9 @@ config = dict(
         "device": ["cuda:0"],
         "image_size": image_size,
         "frame_stack_size": frame_stack_size,
-        "frame_stack_step": 2,
+        "frame_stack_step": 1,
         "amp": True,
-        "iter_size": 4,
+        "iter_size": 1,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
@@ -66,7 +66,7 @@ config = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
+        "weights": [0.1, 0.8, 0.1],
         "prob": 0.25,
     },
     pretrain_action_experiment="action_sampling_weights_002",
