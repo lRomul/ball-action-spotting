@@ -1,3 +1,4 @@
+import time
 import json
 import argparse
 import multiprocessing
@@ -207,3 +208,7 @@ if __name__ == "__main__":
         print(f"Val games: {val_games}, train games: {train_games}")
         print(f"Fold experiment dir: {fold_experiment_dir}")
         train_ball_action(config, fold_experiment_dir, train_games, val_games)
+
+        torch._dynamo.reset()
+        torch.cuda.empty_cache()
+        time.sleep(12)
