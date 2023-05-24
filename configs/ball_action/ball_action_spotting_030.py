@@ -11,7 +11,7 @@ config = dict(
     image_size=image_size,
     batch_size=batch_size,
     base_lr=base_lr,
-    min_base_lr=base_lr * 0.05,
+    min_base_lr=base_lr * 0.01,
     ema_decay=0.999,
     max_targets_window_size=15,
     train_epoch_size=6000,
@@ -22,9 +22,9 @@ config = dict(
         clear_pred_window_size=27,
     ),
     metric_accuracy_threshold=0.5,
-    num_nvdec_workers=3,
+    num_nvdec_workers=1,
     num_opencv_workers=1,
-    num_epochs=[3, 15],
+    num_epochs=[10, 20],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -74,5 +74,12 @@ config = dict(
     torch_compile={
         "backend": "inductor",
         "mode": "default",
+    },
+    mixup_params={
+        "mixup_alpha": 1.,
+        "prob": 1.,
+        "mode": "elem",
+        "label_smoothing": 0.,
+        "num_classes": constants.num_classes,
     },
 )
