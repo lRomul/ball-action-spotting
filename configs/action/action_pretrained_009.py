@@ -39,7 +39,7 @@ config = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=1,
     num_opencv_workers=1,
-    num_epochs=[4, 20],
+    num_epochs=[4, 16],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -87,12 +87,5 @@ config = dict(
     torch_compile={
         "backend": "inductor",
         "mode": "default",
-    },
-    mixup_params={
-        "mixup_alpha": 1.,
-        "prob": 0.5,
-        "mode": "elem",
-        "label_smoothing": 0.,
-        "num_classes": constants.num_classes,
     },
 )

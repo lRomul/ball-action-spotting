@@ -137,7 +137,7 @@ def train_action(config: dict, save_dir: Path):
         elif stage == "train":
             checkpoint_format = "model-{epoch:03d}-{val_average_precision:.6f}.pth"
             callbacks += [
-                EmaCheckpoint(save_dir, file_format=checkpoint_format, max_saves=1),
+                EmaCheckpoint(save_dir, file_format=checkpoint_format, max_saves=num_epochs),
                 CosineAnnealingLR(
                     T_max=num_iterations,
                     eta_min=get_lr(config["min_base_lr"], config["batch_size"]),
