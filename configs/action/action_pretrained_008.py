@@ -90,7 +90,7 @@ config = dict(
     },
     mixup_params={
         "mixup_alpha": 1.,
-        "prob": 1.,
+        "prob": 0.5,
         "mode": "elem",
         "label_smoothing": 0.,
         "num_classes": constants.num_classes,
