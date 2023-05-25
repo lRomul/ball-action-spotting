@@ -24,7 +24,7 @@ config = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=1,
     num_opencv_workers=1,
-    num_epochs=[7, 35],
+    num_epochs=[8, 16],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
