@@ -4,14 +4,14 @@ from src.utils import get_lr
 
 image_size = (1280, 736)
 batch_size = 4
-base_lr = 3e-4
-frame_stack_size = 15
+base_lr = 1e-3
+frame_stack_size = 33
 
 config = dict(
     image_size=image_size,
     batch_size=batch_size,
     base_lr=base_lr,
-    min_base_lr=base_lr * 0.01,
+    min_base_lr=base_lr * 0.05,
     ema_decay=0.999,
     max_targets_window_size=15,
     train_epoch_size=6000,
@@ -24,7 +24,7 @@ config = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[8, 8],
+    num_epochs=[5, 5],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -48,8 +48,10 @@ config = dict(
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("AdamW", {
+        "optimizer": ("SGD", {
             "lr": get_lr(base_lr, batch_size),
+            "momentum": 0.9,
+            "nesterov": True,
         }),
         "device": ["cuda:0"],
         "image_size": image_size,
@@ -62,15 +64,15 @@ config = dict(
             "pad_mode": "constant",
             "fill_value": 0,
         }),
-        "freeze_conv2d_encoder": False,
+        "freeze_conv2d_encoder": True,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
         "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
-    pretrain_action_experiment="action_sampling_weights_002",
-    pretrain_ball_experiment="",
+    pretrain_action_experiment="",
+    pretrain_ball_experiment="ball_tuning_001",
     torch_compile={
         "backend": "inductor",
         "mode": "default",
