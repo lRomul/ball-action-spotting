@@ -16,18 +16,22 @@ def parse_arguments():
 
 
 def load_and_blend_predictions(prediction_paths: list[Path]):
+    frame_indexes_lst = []
     prediction_lst = []
-    prev_frame_indexes = None
     for prediction_path in prediction_paths:
         with np.load(str(prediction_path)) as npz_predictions:
             frame_indexes = npz_predictions["frame_indexes"]
             predictions = npz_predictions["raw_predictions"]
-        if prev_frame_indexes is not None:
-            assert np.all(prev_frame_indexes == frame_indexes)
-        prev_frame_indexes = frame_indexes
+        frame_indexes_lst.append(frame_indexes)
         prediction_lst.append(predictions)
 
-    blend_prediction = np.mean(prediction_lst, axis=0)
+    frame_indexes = np.unique(np.concatenate(frame_indexes_lst))
+    blend_prediction = np.zeros((np.max(frame_indexes) + 1, constants.num_classes))
+    for frame_indexes, prediction in zip(frame_indexes_lst, prediction_lst):
+        blend_prediction[frame_indexes] += prediction
+    blend_prediction /= len(prediction_lst)
+    blend_prediction = blend_prediction[np.min(frame_indexes):]
+    assert blend_prediction.shape[0] == frame_indexes.shape[0]
     return blend_prediction, frame_indexes
 
 
