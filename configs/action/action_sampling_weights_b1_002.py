@@ -5,7 +5,7 @@ from src.utils import get_lr
 image_size = (1280, 736)
 batch_size = 4
 base_lr = 3e-4
-frame_stack_size = 39
+frame_stack_size = 15
 
 config = dict(
     image_size=image_size,
@@ -37,13 +37,13 @@ config = dict(
         }
     ),
     metric_accuracy_threshold=0.5,
-    num_nvdec_workers=1,
+    num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[4, 16],
+    num_epochs=[4, 20],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
-            "model_name": "tf_efficientnetv2_b0.in1k",
+            "model_name": "tf_efficientnetv2_b1.in1k",
             "num_classes": constants.num_classes,
             "num_frames": frame_stack_size,
             "stack_size": 3,
@@ -69,9 +69,9 @@ config = dict(
         "device": ["cuda:0"],
         "image_size": image_size,
         "frame_stack_size": frame_stack_size,
-        "frame_stack_step": 1,
+        "frame_stack_step": 2,
         "amp": True,
-        "iter_size": 2,
+        "iter_size": 1,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
@@ -81,7 +81,7 @@ config = dict(
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.1, 0.8, 0.1],
+        "weights": [0.2, 0.6, 0.2],
         "prob": 0.25,
     },
     torch_compile={
