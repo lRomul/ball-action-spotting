@@ -4,8 +4,8 @@ from src.utils import get_lr
 
 image_size = (1280, 736)
 batch_size = 4
-base_lr = 1e-3
-frame_stack_size = 33
+base_lr = 3e-4
+frame_stack_size = 39
 
 config = dict(
     image_size=image_size,
@@ -24,7 +24,7 @@ config = dict(
     metric_accuracy_threshold=0.5,
     num_nvdec_workers=3,
     num_opencv_workers=1,
-    num_epochs=[3, 3],
+    num_epochs=[8, 8],
     stages=["warmup", "train"],
     argus_params={
         "nn_module": ("multidim_stacker", {
@@ -48,31 +48,29 @@ config = dict(
             "gamma": 1.2,
             "reduction": "mean",
         }),
-        "optimizer": ("SGD", {
+        "optimizer": ("AdamW", {
             "lr": get_lr(base_lr, batch_size),
-            "momentum": 0.9,
-            "nesterov": True,
         }),
         "device": ["cuda:0"],
         "image_size": image_size,
         "frame_stack_size": frame_stack_size,
-        "frame_stack_step": 2,
+        "frame_stack_step": 1,
         "amp": True,
-        "iter_size": 1,
+        "iter_size": 2,
         "frames_processor": ("pad_normalize", {
             "size": image_size,
             "pad_mode": "constant",
             "fill_value": 0,
         }),
-        "freeze_conv2d_encoder": True,
+        "freeze_conv2d_encoder": False,
     },
     frame_index_shaker={
         "shifts": [-1, 0, 1],
-        "weights": [0.2, 0.6, 0.2],
+        "weights": [0.1, 0.8, 0.1],
         "prob": 0.25,
     },
-    pretrain_action_experiment="",
-    pretrain_ball_experiment="ball_tuning_001",
+    pretrain_action_experiment="action_pretrained_009",
+    pretrain_ball_experiment="",
     torch_compile={
         "backend": "inductor",
         "mode": "default",
