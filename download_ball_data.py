@@ -13,7 +13,7 @@ parser.add_argument('--dataset_dir', type=str, default="data/soccernet",
 parser.add_argument('--password_videos', type=str, required=True,
                     help="Password to videos from the NDA")
 parser.add_argument('--without_challenge', action='store_true',
-                    help="Download only train and valid splits")
+                    help="Download only train, valid, and test splits")
 args = parser.parse_args()
 
 
