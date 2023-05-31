@@ -19,7 +19,7 @@ The model architecture is a slow fusion approach that uses 2D convolutions in th
 The architecture made one of the main contributions to the solution result. 
 It raised the metric on test and challenge splits by ~0.15 mAP@1 (from 0.65 to 0.8) compared to the 2D CNN early fusion approach.
 
-<img src="https://github.com/lRomul/ball-action-spotting/assets/11138870/8e56bf90-d117-428f-b9bd-0927dab58107"  width="80%">
+![model](https://github.com/lRomul/ball-action-spotting/assets/11138870/8e56bf90-d117-428f-b9bd-0927dab58107)
 
 The model consumes sequences of grayscale frames. Neighboring frames are stacking as channels for input to the 2D convolutional encoder.
 For example, if there are 15 frames and triples are stacked, then we get 5 input tensors with 3 channels for 2D convolutions. 
