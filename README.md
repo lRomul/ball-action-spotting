@@ -29,8 +29,8 @@ Then linear classifier predicts the presence of actions in the middle frame.
 
 The core idea of the model is based on a concept from the 1st place solution of [DFL - Bundesliga Data Shootout Competition](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932).  
 
-The following hyperparameters were chosen as a result of the experiments: 
-* Stack threes from 15 grayscale 1280x736 frames skipping every second frame in the original 25 FPS video (equivalent to neighboring frames in 12.5 FPS)
+I choose the following model hyperparameters as a result of the experiments:
+* Stack threes from 15 grayscale 1280x736 frames skipping every second frame in the original 25 FPS video (equivalent to 15 neighboring frames in 12.5 FPS, about 1.16 seconds window)
 * EfficientNetV2 B0 as 2D encoder
 * 4 inverted residual 3D blocks as 3D encoder (ported from 2D EfficientNet version)
 * GeM as global pooling 
@@ -40,13 +40,19 @@ You can find more details in the [model implementation](src/models/multidim_stac
 
 ### Training
 
+I made several stages of training to obtain 86.47 mAP@1 on the challenge split (87.03 on the test): 
+1. **Basic training.** The 2D encoder starts from ImageNet weights, and other parts start from scratch.
+2. **Training on Action Spotting Challenge videos and classes.** Same weights as in p1.
+3. **Transfer learning training.** 2D and 3D encoders start from p2 weights. Out-of-fold predictions from p1 were used for sampling. 
+4. **Finetuning training on long sequences.** 2D and 3D encoders start from p3 weights. 2D encoder weights are frozen.
+
 ### Data loading
 
 ### Prediction and postprocessing
 
 ### Progress
 
-Detailed progress of the solution development during the challenge can be seen in spreadsheets:
+You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
 
 ## Quick setup and start
 
