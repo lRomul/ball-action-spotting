@@ -1,4 +1,4 @@
-NAME?=soccernet-23
+NAME?=ball-action-spotting
 COMMAND?=bash
 OPTIONS?=
 
