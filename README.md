@@ -10,14 +10,14 @@ Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/task
 
 Key points:
 * Efficient model architecture for extracting information from videos data
-* Multi-stage training (transfer learning, fine-tuning with long sequence)
+* Multi-stage training (transfer learning, fine-tuning with long sequences)
 * Fast video loading for training (GPU based, no need for preprocessing with extracting images)
 
 ### Model
 
 The model architecture is a slow fusion approach using 2D convolutions in the early part and 3D convolutions in the late.
 The architecture made one of the main contributions to the solution result. 
-It raised the metric on test and challenge splits by ~0.15 mAP@1 (from 0.65 to 0.8) compared to the 2D CNN early fusion approach.
+It raised the metric on test and challenge sets by ~0.15 mAP@1 (from 0.65 to 0.8) compared to the 2D CNN early fusion approach.
 
 ![model](https://github.com/lRomul/ball-action-spotting/assets/11138870/8e56bf90-d117-428f-b9bd-0927dab58107)
 
@@ -41,16 +41,16 @@ You can find more details in the [model implementation](src/models/multidim_stac
 
 ### Training
 
-I made several stages of training to obtain 86.47 mAP@1 on the challenge split (87.03 on the test): 
+I made several stages of training to obtain 86.47 mAP@1 on the challenge set (87.03 on the test): 
 1. **Basic training ([config](configs/ball_action/sampling_weights_001.py)).** The 2D encoder starts from ImageNet weights, and other parts start from scratch.
 2. **Training on Action Spotting Challenge dataset ([config](configs/action/action_sampling_weights_002.py)).** Same weights as in 1.
 3. **Transfer learning ([config](configs/ball_action/ball_tuning_001.py)).** 2D and 3D encoders start from 2 weights. Out-of-fold predictions from 1 were used for data sampling (more details later).
-4. **Fine-tuning with long sequence ([config](configs/ball_action/ball_finetune_long_004.py)).** 2D and 3D encoders start from 3 weights. 2D encoder weights are frozen.
+4. **Fine-tuning with long sequences ([config](configs/ball_action/ball_finetune_long_004.py)).** 2D and 3D encoders start from 3 weights. 2D encoder weights are frozen.
 
 #### Basic training
 
 In this challenge, I used 7-fold cross-validation to tune the training pipeline more precisely. 
-Each labeled video from the dataset is a different fold. 
+Each labeled game from the dataset is a different fold. 
 
 In short, the resulting training pipeline:
 * Learning rate warmup first 6 epochs from 0 to 3e-4, cosine annealing last 30 epochs to 3e-6
@@ -59,28 +59,31 @@ In short, the resulting training pipeline:
 * Focal Loss with alpha 0.4, gamma 1.2
 * Model EMA with decay 0.999
 * Initial weights for 2D encoder ImageNet pretrained
-* Model hyperparameters listed in model part above
+* Model hyperparameters listed in the model part above
 
 Worth writing about sampling techniques during training, which significantly impacts its results. 
 For basic training, was used simple but well work sampling algorithm. 
 For each training sample, randomly take video index by a uniform distribution. 
 Then randomly choose a frame index by the following distribution. 
-Large values are placed in a window of 9 frames around event label. 
+Large values are placed around event labels in a window of 9 frames. 
 Values are calculated so that the sum of probabilities around actions equals the sum around non-action frames.
-I tried different ratios, but equal chance to show empty and event frame worked best. 
-I will introduce a more advanced sampling scheme in the part about transfer learning.
+I tried different ratios, but an equal chance to show empty and event frame worked best. 
+I will introduce a more advanced sampling scheme in part about transfer learning.
+
+The models from this training have 79.06 mAP@1 on CV (cross-validation) and 84.26 mAP@1 on the test set (the metric on test split was calculated by the out-of-fold predictions for two folds which include test games). 
+I didn't evaluate these models for the challenge set.
 
 #### Training on Action Spotting Challenge dataset
 
 #### Transfer learning
 
-#### Fine-tuning with long sequence
-
-### Data loading
+#### Fine-tuning with long sequences
 
 ### Prediction and postprocessing
 
 ### Training and prediction accelerations
+
+### Progress
 
 You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
 
