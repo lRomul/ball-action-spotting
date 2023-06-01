@@ -4,12 +4,13 @@
 
 This repo contains the solution for the [SoccerNet Ball Action Spotting 2023 Challenge](https://www.soccer-net.org/challenges/2023). 
 The challenge goal is to develop an algorithm for spotting passes and drives occurring in videos of soccer matches. 
-Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/tasks/action-spotting), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision). 
+Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/tasks/action-spotting), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision).
+
 ## Solution
 
 Key points:
 * Efficient model architecture for extracting information from videos data
-* Multi-stage training (transfer learning, finetuning on long sequences)
+* Multi-stage training (transfer learning, fine-tuning with long sequence)
 * Fast video loading for training (GPU based, no need for preprocessing with extracting images)
 
 ### Model
@@ -41,16 +42,45 @@ You can find more details in the [model implementation](src/models/multidim_stac
 ### Training
 
 I made several stages of training to obtain 86.47 mAP@1 on the challenge split (87.03 on the test): 
-1. **Basic training.** The 2D encoder starts from ImageNet weights, and other parts start from scratch.
-2. **Training on Action Spotting Challenge videos and classes.** Same weights as in p1.
-3. **Transfer learning training.** 2D and 3D encoders start from p2 weights. Out-of-fold predictions from p1 were used for sampling. 
-4. **Finetuning training on long sequences.** 2D and 3D encoders start from p3 weights. 2D encoder weights are frozen.
+1. **Basic training ([config](configs/ball_action/sampling_weights_001.py)).** The 2D encoder starts from ImageNet weights, and other parts start from scratch.
+2. **Training on Action Spotting Challenge dataset ([config](configs/action/action_sampling_weights_002.py)).** Same weights as in 1.
+3. **Transfer learning ([config](configs/ball_action/ball_tuning_001.py)).** 2D and 3D encoders start from 2 weights. Out-of-fold predictions from 1 were used for data sampling (more details later).
+4. **Fine-tuning with long sequence ([config](configs/ball_action/ball_finetune_long_004.py)).** 2D and 3D encoders start from 3 weights. 2D encoder weights are frozen.
+
+#### Basic training
+
+In this challenge, I used 7-fold cross-validation to tune the training pipeline more precisely. 
+Each labeled video from the dataset is a different fold. 
+
+In short, the resulting training pipeline:
+* Learning rate warmup first 6 epochs from 0 to 3e-4, cosine annealing last 30 epochs to 3e-6
+* Batch size 4, one training epoch 6000 samples 
+* Optimizer AdamW with weight decay 0.01
+* Focal Loss with alpha 0.4, gamma 1.2
+* Model EMA with decay 0.999
+* Initial weights for 2D encoder ImageNet pretrained
+* Model hyperparameters listed in model part above
+
+Worth writing about sampling techniques during training, which significantly impacts its results. 
+For basic training, was used simple but well work sampling algorithm. 
+For each training sample, randomly take video index by a uniform distribution. 
+Then randomly choose a frame index by the following distribution. 
+Large values are placed in a window of 9 frames around event label. 
+Values are calculated so that the sum of probabilities around actions equals the sum around non-action frames.
+I tried different ratios, but equal chance to show empty and event frame worked best. 
+I will introduce a more advanced sampling scheme in the part about transfer learning.
+
+#### Training on Action Spotting Challenge dataset
+
+#### Transfer learning
+
+#### Fine-tuning with long sequence
 
 ### Data loading
 
 ### Prediction and postprocessing
 
-### Progress
+### Training and prediction accelerations
 
 You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
 
