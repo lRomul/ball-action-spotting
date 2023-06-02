@@ -1,6 +1,6 @@
 # Solution for SoccerNet Ball Action Spotting 2023 Challenge
 
-![header](https://github.com/lRomul/ball-action-spotting/assets/11138870/df58e592-49c0-4904-8fb4-ce68ed143640)
+![header](data/readme_images/header.png)
 
 This repo contains the solution for the [SoccerNet Ball Action Spotting 2023 Challenge](https://www.soccer-net.org/challenges/2023). 
 The challenge goal is to develop an algorithm for spotting passes and drives occurring in videos of soccer matches. 
@@ -19,7 +19,7 @@ The model architecture is a slow fusion approach using 2D convolutions in the ea
 The architecture made one of the main contributions to the solution result. 
 It raised the metric on test and challenge sets by ~15% mAP@1 (from 65 to 8) compared to the 2D CNN early fusion approach.
 
-![model](https://github.com/lRomul/ball-action-spotting/assets/11138870/8e56bf90-d117-428f-b9bd-0927dab58107)
+![model](data/readme_images/model.png)
 
 The model consumes sequences of grayscale frames. Neighboring frames are stacking as channels for input to the 2D convolutional encoder.
 For example, if you take 15 frames and stack threes, you will get 5 input tensors with 3 channels for 2D convolutions. 
@@ -94,7 +94,7 @@ That is understandable because the same models were trained on many games with s
 
 Basic training gives out-of-fold predictions that I use for sampling this way:
 
-![sampling](https://github.com/lRomul/ball-action-spotting/assets/11138870/737c37f1-4f03-4344-a670-64f20c6972fc)
+![sampling](data/readme_images/header.png)
 
 Take the element-wise maximum between the sampling distribution (introduced above) and predictions, then normalize again to equal probability sums between empty and action frames.
 The intuition is that there are some hard negative examples in the dataset. Due to many negative samples, such hard examples are rarely sampled during training. 
