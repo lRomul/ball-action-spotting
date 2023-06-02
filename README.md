@@ -94,7 +94,7 @@ That is understandable because the same models were trained on many games with s
 
 Basic training gives out-of-fold predictions that I use for sampling this way:
 
-![sampling](data/readme_images/header.png)
+![sampling](data/readme_images/sampling.png)
 
 Take the element-wise maximum between the sampling distribution (introduced above) and predictions, then normalize again to equal probability sums between empty and action frames.
 The intuition is that there are some hard negative examples in the dataset. Due to many negative samples, such hard examples are rarely sampled during training. 
