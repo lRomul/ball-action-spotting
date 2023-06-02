@@ -28,8 +28,6 @@ A single 2D encoder independently predicts those input tensors, producing visual
 Concated temporal features from the 3D encoder pass through global pooling to compress the spatial dimensions. 
 Then linear classifier predicts the presence of actions in the middle frame.
 
-The core idea of the model is based on a concept from the 1st place solution of [DFL - Bundesliga Data Shootout Competition](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932).  
-
 I choose the following model hyperparameters as a result of the experiments:
 * Stack threes from 15 grayscale 1280x736 frames skipping every second frame in the original 25 FPS video (equivalent to 15 neighboring frames in 12.5 FPS, about 1.16 seconds window)
 * EfficientNetV2 B0 as 2D encoder
@@ -69,6 +67,11 @@ Large values are placed around event labels in a window of 9 frames.
 Values are normalized so that the sum of probabilities around actions equals the sum around non-action frames.
 I tried different ratios, but an equal chance to show empty and event frame worked best. 
 I will introduce a more advanced sampling scheme in part about transfer learning.
+
+I applied the usual augmentations like horizontal flip, rotation, random resized crop, brightness, motion blur, etc. 
+Of the interesting, there are only two temporal augmentations:
+* Simulating camera movement (change translation, scale, and angle over time)
+* Randomly shake the frames in sequences (applied 40% chance to change the frame index on +- 1)
 
 The models from this training have 79.06% on CV (cross-validation) and 84.26% mAP@1 on the test set (the metric on test split was calculated by the out-of-fold predictions for two folds which include test games). 
 I didn't evaluate these models for the challenge set.
@@ -112,15 +115,40 @@ Changes compared to transfer learning experiment:
 * LR warmup first 2 epochs from 0 to 1e-3, cosine annealing last 7 epochs to 5e-05
 * SGD with Nesterov momentum 0.9
 
-Models scored 80.49% on CV, 87.04% on the test, and 86.47% mAP@1 on the challenge set. The score is lesser on cross-validation, but it's my best submission on the test and the challenge set ¯\_(ツ)_/¯
+Models scored 80.49% on CV, 87.04% on the test, and 86.47% mAP@1 on the challenge set. The score is lesser on cross-validation, but it's my best submission on the test and the challenge set `¯\_(ツ)_/¯`
 
-#### Prediction and postprocessing
+### Prediction and postprocessing
 
-#### Training and prediction accelerations
+Models predict each possible sequence of frames from the videos. Additionally, I make test time augmentation with the horizontal flip. On the challenge set, I used the arithmetic mean of predictions from all fold models.
 
-#### Progress
+Postprocessing is very simple. I just used a combination of Gaussian filter and peak detection from `SciPy` with the following parameters: standard deviation for Gaussian kernel 3.0, peak detection maximal required height 0.2, and minimal distance between neighboring peaks 15.
+
+### Training and prediction accelerations
+
+I optimized the training pipeline to iterate experiments faster and to test more hypotheses.
+* Custom multiprocessing video loader with simultaneous use VideoProcessingFramework (GPU decoding) and OpenCV (CPU decoding) workers.
+* FP16 with Automatic Mixed Precision.
+* `torch.compile` using TorchDynamo backend.
+* Augmentation on the GPU with `kornia`.
+
+These accelerations allow running epoch (train + val) of basic training in 7:30 minutes on a single RTX 3090 Ti. It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x720 resolution.
+Also, using source videos without the preprocessing with extracting images allows using any video frame during training and saves disk space.
+
+I applied caching strategy to speed up inference time using the architecture structure. If you save the last visual features, it is enough to predict with the 2D encoder only one stack of frames when receiving a new one. The 2D encoder is the most expensive part of the model. Predicting 3D features takes a short time. So this strategy dramatically boosts prediction speed several times.
+
+### Work progress
+
+My work is very inspired by the top solutions of the DFL - Bundesliga Data Shootout competition:
+* Team Hydrogen ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932))
+* K_mat ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360097))
+* Camaro ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360236))
+* ohkawa3 ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360331))
+
+So I found a good base approach quickly. Thanks for sharing well-written and detailed reports :) 
 
 You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
+
+Thanks to the SoccerNet organizers for the excellent datasets. Thanks to the participants for a good competition. Thanks to my family and friends who supported me during the challenge! 
 
 ## Quick setup and start
 
