@@ -56,17 +56,17 @@ In short, the resulting training pipeline:
 * Learning rate warmup first 6 epochs from 0 to 3e-4, cosine annealing last 30 epochs to 3e-6
 * Batch size 4, one training epoch 6000 samples 
 * Optimizer AdamW with weight decay 0.01
-* Focal Loss with alpha 0.4, gamma 1.2
+* Focal loss with gamma 1.2
 * Model EMA with decay 0.999
 * Initial weights for 2D encoder ImageNet pretrained
-* Model hyperparameters listed in the model part above
+* Model hyperparameters listed above in the model part
 
 Worth writing about sampling techniques during training, which significantly impacts its results. 
 For basic training, was used simple but well work sampling algorithm. 
 For each training sample, randomly take video index by a uniform distribution. 
 Then randomly choose a frame index by the following distribution. 
 Large values are placed around event labels in a window of 9 frames. 
-Values are calculated so that the sum of probabilities around actions equals the sum around non-action frames.
+Values are normalized so that the sum of probabilities around actions equals the sum around non-action frames.
 I tried different ratios, but an equal chance to show empty and event frame worked best. 
 I will introduce a more advanced sampling scheme in part about transfer learning.
 
@@ -75,15 +75,41 @@ I didn't evaluate these models for the challenge set.
 
 #### Training on Action Spotting Challenge dataset
 
+I built a similar pipeline for videos and classes from Action Spotting Challenge to get good initial weights for the next experiment. 
+
+Briefly, here are the changes from the previous:
+* 377 games in training, 18 in validation split
+* 15 classes (cards class was merged because the model consumes grayscale frames) 
+* 4 warmup epochs and 20 training epochs, one epoch is 36000 samples
+* Weight the frame sampling by the effective number of class samples 
+
 #### Transfer learning
+
+This training uses the results of the previous two. 
+The second one gives excellent initial weights for 2D and 3D encoders. It provides a significant boost (~2 mAP@1 on test and CV). 
+That is understandable because the same models were trained on many games with similar input frames and some similar actions.
+
+Basic training gives out-of-fold predictions that I use for sampling this way:
+
+![sampling](https://github.com/lRomul/ball-action-spotting/assets/11138870/737c37f1-4f03-4344-a670-64f20c6972fc)
+
+Take the element-wise maximum between the sampling distribution (introduced above) and predictions, then normalize again to equal probability sums between empty and action frames.
+The intuition is that there are some hard negative examples in the dataset. Due to many negative samples, such hard examples are rarely sampled during training. 
+With the operation above, we can make something like hard negative mining/sampling.
+
+Other minor changes compared to basic training:
+* 7 warmup epochs and 35 training epochs
+* Focal loss with gamma 1.2 and alpha 0.4
+
+Models achieve 81.04 mAP@1 on CV, 86.51 mAP@1 on the test, and 86.35 mAP@1 on the challenge set.
 
 #### Fine-tuning with long sequences
 
-### Prediction and postprocessing
+#### Prediction and postprocessing
 
-### Training and prediction accelerations
+#### Training and prediction accelerations
 
-### Progress
+#### Progress
 
 You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
 
