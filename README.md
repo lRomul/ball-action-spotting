@@ -9,7 +9,7 @@ Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/task
 ## Solution
 
 Key points:
-* Efficient model architecture for extracting information from videos data
+* Efficient model architecture for extracting information from video data
 * Multi-stage training (transfer learning, fine-tuning with long sequences)
 * Fast video loading for training (GPU based, no need for preprocessing with extracting images)
 
@@ -17,7 +17,7 @@ Key points:
 
 The model architecture is a slow fusion approach using 2D convolutions in the early part and 3D convolutions in the late.
 The architecture made one of the main contributions to the solution result. 
-It raised the metric on test and challenge sets by ~15% mAP@1 (from 65 to 8) compared to the 2D CNN early fusion approach.
+It raised the metric on test and challenge sets by ~15% mAP@1 (from 65% to 80%) compared to the 2D CNN early fusion approach.
 
 ![model](data/readme_images/model.png)
 
@@ -121,33 +121,33 @@ Models scored 80.49% on CV, 87.04% on the test, and 86.47% mAP@1 on the challeng
 
 Models predict each possible sequence of frames from the videos. Additionally, I make test time augmentation with the horizontal flip. On the challenge set, I used the arithmetic mean of predictions from all fold models.
 
-Postprocessing is very simple. I just used a combination of Gaussian filter and peak detection from `SciPy` with the following parameters: standard deviation for Gaussian kernel 3.0, peak detection maximal required height 0.2, and minimal distance between neighboring peaks 15.
+Postprocessing is very simple. I just used a combination of Gaussian filter and peak detection from `SciPy` with the following parameters: standard deviation for Gaussian kernel 3.0, peak detection minimal height 0.2, and minimal distance between neighboring peaks 15.
 
 ### Training and prediction accelerations
 
 I optimized the training pipeline to iterate experiments faster and to test more hypotheses.
-* Custom multiprocessing video loader with simultaneous use VideoProcessingFramework (GPU decoding) and OpenCV (CPU decoding) workers.
-* FP16 with Automatic Mixed Precision.
-* `torch.compile` using TorchDynamo backend.
-* Augmentation on the GPU with `kornia`.
+* Custom multiprocessing video loader with simultaneous use VideoProcessingFramework (GPU decoding) and OpenCV (CPU decoding) workers
+* FP16 with Automatic Mixed Precision
+* `torch.compile` using TorchDynamo backend
+* Augmentation on the GPU with `kornia`
 
-These accelerations allow running epoch (train + val) of basic training in 7 minutes and 10 seconds on a single RTX 3090 Ti. It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x720 resolution.
+These accelerations allow running epoch (train + val) of basic training in 7 minutes and 10 seconds on a single RTX 3090 Ti. 
+It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x736 resolution.
 Also, using source videos without the preprocessing with extracting images allows using any video frame during training and saves disk space.
 
 I applied caching strategy to speed up inference time using the architecture structure. If you save the last visual features, it is enough to predict with the 2D encoder only one stack of frames when receiving a new one. The 2D encoder is the most expensive part of the model. Predicting 3D features takes a short time. So this strategy dramatically boosts prediction speed several times.
 
-### Work progress
+### Progress
 
-My work is very inspired by the top solutions of the DFL - Bundesliga Data Shootout competition:
+You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
+
+My solution is very inspired by the top solutions of the DFL - Bundesliga Data Shootout competition:
 * Team Hydrogen ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932))
 * K_mat ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360097))
 * Camaro ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360236))
 * ohkawa3 ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360331))
 
-So I found a good base approach quickly. Thanks for sharing well-written and detailed reports :) 
-
-You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
-
+So I found a good base approach quickly. Thanks for sharing well-written and detailed reports :)  
 Thanks to the SoccerNet organizers for the excellent datasets. Thanks to the participants for a good competition. Thanks to my family and friends who supported me during the challenge! 
 
 ## Quick setup and start
@@ -170,12 +170,6 @@ cd ball-action-spotting
 ```
 
 Build a Docker image and run a container. 
-
-```bash
-make
-```
-
-From now on, you should run all commands inside the docker container. 
 
 <details><summary>Here is a small guide on how to use the provided Makefile</summary>
 
@@ -202,6 +196,12 @@ make stop
 
 </details>
 
+```bash
+make
+```
+
+From now on, you should run all commands inside the docker container.
+
 Download the Ball Action Spotting dataset (9 GB). 
 To get the password, you must fill NDA ([link](https://www.soccer-net.org/data)).
 
@@ -209,7 +209,7 @@ To get the password, you must fill NDA ([link](https://www.soccer-net.org/data))
 python download_ball_data.py --password_videos <password>
 ```
 
-Download the Action Spotting dataset (791.5 GB). You can skip this step, but then you cannot train the model on the action dataset.
+Download the Action Spotting dataset (791.5 GB). You can skip this step, but then you cannot train the model on the action dataset.
 
 ```bash
 python download_action_data.py --only_train_valid --password_videos <password>
