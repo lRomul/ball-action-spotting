@@ -17,7 +17,7 @@ Key points:
 
 The model architecture is a slow fusion approach using 2D convolutions in the early part and 3D convolutions in the late.
 The architecture made one of the main contributions to the solution result. 
-It raised the metric on test and challenge sets by ~0.15 mAP@1 (from 0.65 to 0.8) compared to the 2D CNN early fusion approach.
+It raised the metric on test and challenge sets by ~15% mAP@1 (from 65 to 8) compared to the 2D CNN early fusion approach.
 
 ![model](https://github.com/lRomul/ball-action-spotting/assets/11138870/8e56bf90-d117-428f-b9bd-0927dab58107)
 
@@ -41,7 +41,7 @@ You can find more details in the [model implementation](src/models/multidim_stac
 
 ### Training
 
-I made several stages of training to obtain 86.47 mAP@1 on the challenge set (87.03 on the test): 
+I made several stages of training to obtain 86.47% mAP@1 on the challenge set (87.03% on the test): 
 1. **Basic training ([config](configs/ball_action/sampling_weights_001.py)).** The 2D encoder starts from ImageNet weights, and other parts start from scratch.
 2. **Training on Action Spotting Challenge dataset ([config](configs/action/action_sampling_weights_002.py)).** Same weights as in 1.
 3. **Transfer learning ([config](configs/ball_action/ball_tuning_001.py)).** 2D and 3D encoders start from 2 weights. Out-of-fold predictions from 1 were used for data sampling (more details later).
@@ -70,7 +70,7 @@ Values are normalized so that the sum of probabilities around actions equals the
 I tried different ratios, but an equal chance to show empty and event frame worked best. 
 I will introduce a more advanced sampling scheme in part about transfer learning.
 
-The models from this training have 79.06 mAP@1 on CV (cross-validation) and 84.26 mAP@1 on the test set (the metric on test split was calculated by the out-of-fold predictions for two folds which include test games). 
+The models from this training have 79.06% on CV (cross-validation) and 84.26% mAP@1 on the test set (the metric on test split was calculated by the out-of-fold predictions for two folds which include test games). 
 I didn't evaluate these models for the challenge set.
 
 #### Training on Action Spotting Challenge dataset
@@ -86,7 +86,7 @@ Briefly, here are the changes from the previous:
 #### Transfer learning
 
 This training uses the results of the previous two. 
-The second one gives excellent initial weights for 2D and 3D encoders. It provides a significant boost (~2 mAP@1 on test and CV). 
+The second one gives excellent initial weights for 2D and 3D encoders. It provides a significant boost (~2% mAP@1 on test and CV). 
 That is understandable because the same models were trained on many games with similar input frames and some similar actions.
 
 Basic training gives out-of-fold predictions that I use for sampling this way:
@@ -95,15 +95,24 @@ Basic training gives out-of-fold predictions that I use for sampling this way:
 
 Take the element-wise maximum between the sampling distribution (introduced above) and predictions, then normalize again to equal probability sums between empty and action frames.
 The intuition is that there are some hard negative examples in the dataset. Due to many negative samples, such hard examples are rarely sampled during training. 
-With the operation above, we can make something like hard negative mining/sampling.
+We can make something like hard negative mining/sampling with the technique.
 
 Other minor changes compared to basic training:
 * 7 warmup epochs and 35 training epochs
 * Focal loss with gamma 1.2 and alpha 0.4
 
-Models achieve 81.04 mAP@1 on CV, 86.51 mAP@1 on the test, and 86.35 mAP@1 on the challenge set.
+Models achieve 81.04% on CV, 86.51% on the test, and 86.35% mAP@1 on the challenge set.
 
 #### Fine-tuning with long sequences
+
+Before, I trained all models on relatively short clips (15 frames in 12.5 FPS, 1.16 seconds) to fits the VRAM of a single GPU and to decrease training time. Models obtained good 2D and 3D encoder weights in the previous experiment. So I tried to freeze 2D weights and fine-tune 3D weights on long sequences to provide more context. 
+
+Changes compared to transfer learning experiment:
+* 33 frames in 12.5 FPS (2.6 seconds)
+* LR warmup first 2 epochs from 0 to 1e-3, cosine annealing last 7 epochs to 5e-05
+* SGD with Nesterov momentum 0.9
+
+Models scored 80.49% on CV, 87.04% on the test, and 86.47% mAP@1 on the challenge set. The score is lesser on cross-validation, but it's my best submission on the test and the challenge set ¯\_(ツ)_/¯
 
 #### Prediction and postprocessing
 
