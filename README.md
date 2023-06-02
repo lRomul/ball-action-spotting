@@ -131,7 +131,7 @@ I optimized the training pipeline to iterate experiments faster and to test more
 * `torch.compile` using TorchDynamo backend.
 * Augmentation on the GPU with `kornia`.
 
-These accelerations allow running epoch (train + val) of basic training in 7:30 minutes on a single RTX 3090 Ti. It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x720 resolution.
+These accelerations allow running epoch (train + val) of basic training in 7 minutes and 10 seconds on a single RTX 3090 Ti. It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x720 resolution.
 Also, using source videos without the preprocessing with extracting images allows using any video frame during training and saves disk space.
 
 I applied caching strategy to speed up inference time using the architecture structure. If you save the last visual features, it is enough to predict with the 2D encoder only one stack of frames when receiving a new one. The 2D encoder is the most expensive part of the model. Predicting 3D features takes a short time. So this strategy dramatically boosts prediction speed several times.
@@ -160,14 +160,83 @@ Thanks to the SoccerNet organizers for the excellent datasets. Thanks to the par
 * [Docker](https://docs.docker.com/engine/install/)
 * [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-### Preparations
-
-* Clone the repo.
-    ```bash
-    git clone git@github.com:lRomul/ball-action-spotting.git
-    cd ball-action-spotting
-    ```
-
-* 
-
 ### Run
+
+Clone the repo and enter the folder.
+
+```bash
+git clone git@github.com:lRomul/ball-action-spotting.git
+cd ball-action-spotting
+```
+
+Build a Docker image and run a container. 
+
+```bash
+make
+```
+
+From now on, you should run all commands inside the docker container. 
+
+<details><summary>Here is a small guide on how to use the provided Makefile</summary>
+
+```bash
+make  # stop, build, run
+
+# do the same
+make stop
+make build
+make run
+
+make  # by default all GPUs passed 
+make GPUS=all  # do the same
+make GPUS=none  # without GPUs
+
+make run GPUS=2  # pass the first two GPUs
+make run GPUS='\"device=1,2\"'  # pass GPUs numbered 1 and 2
+
+make logs
+make exec  # run a new command in a running container
+make exec COMMAND="bash"  # do the same 
+make stop
+```
+
+</details>
+
+Download the Ball Action Spotting dataset (9 GB). 
+To get the password, you must fill NDA ([link](https://www.soccer-net.org/data)).
+
+```bash
+python download_ball_data.py --password_videos <password>
+```
+
+Download the Action Spotting dataset (791.5 GB). You can skip this step, but then you cannot train the model on the action dataset.
+
+```bash
+python download_action_data.py --only_train_valid --password_videos <password>
+```
+
+Now you can train models and use them to predict games.  
+To reproduce the final solution, you can use the following commands:
+
+```bash
+# Train and predict basic experiment on all folds
+python scripts/ball_action/train.py --experiment sampling_weights_001
+python scripts/ball_action/predict.py --experiment sampling_weights_001
+
+# Training on Action Spotting Challenge dataset
+python scripts/action/train.py --experiment action_sampling_weights_002
+
+# Transfer learning
+python scripts/ball_action/train.py --experiment ball_tuning_001
+
+# Fine-tune with long sequences, evaluate on CV, and predict challenge set
+python scripts/ball_action/train.py --experiment ball_finetune_long_004
+python scripts/ball_action/predict.py --experiment ball_finetune_long_004
+python scripts/ball_action/evaluate.py --experiment ball_finetune_long_004
+python scripts/ball_action/predict.py --experiment ball_finetune_long_004 --challenge
+python scripts/ball_action/ensemble.py --experiments ball_finetune_long_004 --challenge
+
+# Spotting results will be there
+cd data/ball_action/predictions/ball_finetune_long_004/challenge/ensemble/
+zip results_spotting.zip ./*/*/*/results_spotting.json
+```
