@@ -2,9 +2,9 @@
 
 ![header](data/readme_images/header.png)
 
-This repo contains the solution for the [SoccerNet Ball Action Spotting 2023 Challenge](https://www.soccer-net.org/challenges/2023). 
+This repo contains the solution for the [SoccerNet Ball Action Spotting 2023 Challenge](https://www.soccer-net.org/challenges/2023#h.vverf0niv2is). 
 The challenge goal is to develop an algorithm for spotting passes and drives occurring in videos of soccer matches. 
-Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/tasks/action-spotting), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision).
+Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/challenges/2023#h.x9nb4u9m441u), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision).
 
 ## Solution
 
@@ -126,7 +126,7 @@ Postprocessing is very simple. I just used a combination of Gaussian filter and 
 ### Training and prediction accelerations
 
 I optimized the training pipeline to iterate experiments faster and to test more hypotheses.
-* Custom multiprocessing video loader with simultaneous use VideoProcessingFramework (GPU decoding) and OpenCV (CPU decoding) workers
+* Custom multiprocessing video loader with simultaneous use `VideoProcessingFramework` (GPU decoding) and `OpenCV` (CPU decoding) workers
 * FP16 with Automatic Mixed Precision
 * `torch.compile` using TorchDynamo backend
 * Augmentation on the GPU with `kornia`
@@ -135,7 +135,9 @@ These accelerations allow running epoch (train + val) of basic training in 7 min
 It's impressive because one epoch is 6000 training and approximately 2600 validation examples, each of which is 15 frames in 1280x736 resolution.
 Also, using source videos without the preprocessing with extracting images allows using any video frame during training and saves disk space.
 
-I applied caching strategy to speed up inference time using the architecture structure. If you save the last visual features, it is enough to predict with the 2D encoder only one stack of frames when receiving a new one. The 2D encoder is the most expensive part of the model. Predicting 3D features takes a short time. So this strategy dramatically boosts prediction speed several times.
+I applied caching strategy to speed up inference time using the architecture structure. 
+If you save the last visual features, it is enough to predict with the 2D encoder only one stack of frames when receiving a new one. 
+The 2D encoder is the most time expensive part of the model. Predicting 3D features takes a short time. So this strategy dramatically boosts prediction speed several times.
 
 ### Progress
 
