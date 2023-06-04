@@ -24,7 +24,7 @@ It effectively improved the mAP@1 metric on both the test and challenge sets, re
 The model consumes sequences of grayscale frames. Neighboring frames are stacking as channels for input to the 2D convolutional encoder.
 For example, if fifteen frames are stacked in sets of three, the outcome would be five input tensors, each consisting of three channels.
 The shared 2D encoder independently processes these input tensors, producing visual features.
-The following 3D encoder processes visual features permuted to add temporal dimension, producing temporal features.
+The following 3D encoder processes visual features, producing temporal features.
 Concated temporal features pass through global pooling to compress the spatial dimensions.
 Then, a linear classifier predicts the presence of actions in the middle frame of the original input sequence.
 
@@ -62,9 +62,8 @@ In short, the resulting training pipeline hyperparameters are:
 Worth writing about sampling techniques during training, which significantly impacts its results.
 For basic training, a simple but well-working sampling algorithm was used.
 For each training sample, randomly take a video index from a uniform distribution.
-Then randomly choose a frame index from а distribution whose probability mass function is as follows.
-Large values are placed around event labels in a window of 9 frames.
-Values are normalized so that the sum of probabilities around actions equals the sum around non-action frames.
+Then randomly choose a frame index with an equal chance to sample frames near to actions and remaining frames.
+Frame near to action if allocated in a 0.36 seconds window (9 frames at 25 FPS) around the action.
 I tried different ratios, but an equal chance to show empty and event frame worked best.
 I will introduce a more advanced sampling scheme in the section on transfer learning.
 
@@ -121,7 +120,7 @@ Models scored 80.49% on CV, 87.04% on the test, and 86.47% mAP@1 on the challeng
 
 Models predict each possible sequence of frames from the videos. Additionally, I make test time augmentation with the horizontal flip. On the challenge set, I used the arithmetic mean of predictions from all fold models.
 
-Postprocessing is very simple. I just used a combination of Gaussian filter and peak detection from `SciPy` with the following parameters: standard deviation for Gaussian kernel 3.0, peak detection minimal height 0.2, and minimal distance between neighboring peaks 15.
+Postprocessing is very simple. I just used a combination of Gaussian filter and peak detection from `SciPy` with the following parameters: standard deviation for Gaussian kernel 3.0, peak detection minimal height 0.2, and minimal distance between neighboring peaks 15 frames.
 
 ### Training and prediction accelerations
 
