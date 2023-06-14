@@ -56,7 +56,7 @@ class MultiChanStacker(MultiDimStacker):
 
     def forward_2d(self, x):
         b, t, c, h, w = x.shape  # (2, 15, 3, 736, 1280)
-        assert t % self.stack_size == 0
+        assert t % self.stack_size == 0 and c == self.num_chans
         num_stacks = t // self.stack_size
         x = x.view(b * num_stacks, self.stack_size * self.num_chans, h, w)  # (10, 9, 736, 1280)
         x = self.conv2d_encoder(x)[-1]  # (10, 192, 23, 40)
