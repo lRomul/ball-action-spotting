@@ -152,7 +152,7 @@ class MultiDimStacker(nn.Module):
                  act_layer: str = "silu",
                  **kwargs):
         super().__init__()
-        assert num_frames > 0 and num_frames % 3 == 0
+        assert num_frames > 0 and num_frames % stack_size == 0
         self.num_frames = num_frames
         self.stack_size = stack_size
         self.num_3d_features = num_3d_features
