@@ -1,0 +1,22 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Solution for SoccerNet Ball Action Spotting Challenge 2023
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Ruslan
+    family-names: Baikulov
+    email: ruslan1123@gmail.com
+    orcid: 'https://orcid.org/0009-0003-4400-0619'
+repository-code: 'https://github.com/lRomul/ball-action-spotting'
+abstract: >-
+  The solution includes an efficient model architecture and
+  a multi-stage training pipeline for spotting the instances
+  of passes and drives occurring in soccer videos.
+license: MIT
+version: v23.06.17
+date-released: '2023-06-17'

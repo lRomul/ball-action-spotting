@@ -1,8 +1,8 @@
-# Solution for SoccerNet Ball Action Spotting 2023 Challenge
+# Solution for SoccerNet Ball Action Spotting Challenge 2023
 
 ![header](data/readme_images/header.png)
 
-This repo contains the solution for the [SoccerNet Ball Action Spotting 2023 Challenge](https://www.soccer-net.org/challenges/2023#h.vverf0niv2is).
+This repo contains the solution for the [SoccerNet Ball Action Spotting Challenge 2023](https://www.soccer-net.org/challenges/2023#h.vverf0niv2is).
 The challenge goal is to develop an algorithm for spotting passes and drives occurring in videos of soccer matches.
 Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/challenges/2023#h.x9nb4u9m441u), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision).
 
