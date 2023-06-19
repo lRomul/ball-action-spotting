@@ -3,9 +3,7 @@
 
 cff-version: 1.2.0
 title: Solution for SoccerNet Ball Action Spotting Challenge 2023
-message: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+message: 'If you use this work, please cite it using these metadata.'
 type: software
 authors:
   - given-names: Ruslan
@@ -18,6 +16,6 @@ abstract: >-
   a multi-stage training pipeline for spotting the instances
   of passes and drives occurring in soccer videos.
 license: MIT
-version: v23.06.17
-date-released: '2023-06-17'
+version: v23.06.19
+date-released: '2023-06-19'
 doi: 10.5281/zenodo.8049255

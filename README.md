@@ -2,7 +2,7 @@
 
 ![header](data/readme_images/header.png)
 
-This repo contains the solution for the [SoccerNet Ball Action Spotting Challenge 2023](https://www.soccer-net.org/challenges/2023#h.vverf0niv2is).
+This repo contains the 1st place solution for the [SoccerNet Ball Action Spotting Challenge 2023](https://www.soccer-net.org/challenges/2023#h.vverf0niv2is).
 The challenge goal is to develop an algorithm for spotting passes and drives occurring in videos of soccer matches.
 Unlike the [SoccerNet Action Spotting Challenge](https://www.soccer-net.org/challenges/2023#h.x9nb4u9m441u), the actions are much more densely allocated and should be predicted more accurately (with a 1-second precision).
 
@@ -140,7 +140,7 @@ The 2D encoder is the most time expensive part of the model. Predicting 3D featu
 
 ### Progress
 
-You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing).
+You can see detailed progress of the solution development during the challenge in [spreadsheets](https://docs.google.com/spreadsheets/d/1mGnTdrVnhoQ8PJKNN539ZzhZxSowc4GpN9NdyDJlqYo/edit?usp=sharing) (the document consists of multiple sheets).
 
 My solution is very inspired by the top solutions of the DFL - Bundesliga Data Shootout competition:
 * Team Hydrogen ([link](https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/359932))
@@ -240,4 +240,32 @@ python scripts/ball_action/ensemble.py --experiments ball_finetune_long_004 --ch
 # Spotting results will be there
 cd data/ball_action/predictions/ball_finetune_long_004/challenge/ensemble/
 zip results_spotting.zip ./*/*/*/results_spotting.json
+```
+
+### Trained models
+
+You can skip any step of training the final solution by downloading model weights and predictions from [Google Drive](https://drive.google.com/drive/folders/1mIu62cIdsRn3W4o1E5vRR8V5Q1B6HHoz?usp=sharing).
+
+Copy the files to the [data](data) directory so that the folder structure is as follows:
+
+```
+data
+├── action
+│   ├── experiments
+│   │   └── action_sampling_weights_002
+│   └── predictions
+│       └── action_sampling_weights_002
+├── ball_action
+│   ├── experiments
+│   │   ├── ball_finetune_long_004
+│   │   ├── ball_tuning_001
+│   │   └── sampling_weights_001
+│   └── predictions
+│       ├── ball_finetune_long_004
+│       ├── ball_tuning_001
+│       └── sampling_weights_001
+├── readme_images
+└── soccernet
+    └── spotting-ball-2023
+        └── england_efl
 ```
