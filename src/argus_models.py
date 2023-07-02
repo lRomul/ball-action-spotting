@@ -31,9 +31,9 @@ class BallActionModel(argus.Model):
             else bool(params['freeze_conv2d_encoder'])
         )
         super().__init__(params)
-        self.iter_size = 1 if 'iter_size' not in self.params else int(self.params['iter_size'])
-        self.amp = False if 'amp' not in self.params else bool(self.params['amp'])
-        self.scaler = torch.cuda.amp.GradScaler() if self.amp else None
+        self.iter_size = int(params.get('iter_size', 1))
+        self.amp = bool(params.get('amp', False))
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
         self.model_ema = None
         self.augmentations: Optional[nn.Module] = None
         self.mixup: Optional[TimmMixup] = None
@@ -55,19 +55,11 @@ class BallActionModel(argus.Model):
                 prediction = self.nn_module(input)
                 loss = self.loss(prediction, target)
                 loss = loss / self.iter_size
-
-            if self.amp:
-                self.scaler.scale(loss).backward()
-            else:
-                loss.backward()
-
+            self.scaler.scale(loss).backward()
             loss_value += loss.item()
 
-        if self.amp:
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-        else:
-            self.optimizer.step()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
 
         if self.model_ema is not None:
             self.model_ema.update(self.nn_module)
